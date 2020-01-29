@@ -43,7 +43,7 @@ func (s *Service) start() (err error) {
 	s.subcmd.Setup = func(cmd *exec.Cmd) error {
 
 		cmd.Stderr = os.Stderr
-		cmd.Env = []string{"SYSTRAY_SUBPROCESS=1"}
+		cmd.Env = append(os.Environ(), "SYSTRAY_SUBPROCESS=1")
 		if s.stdin, err = cmd.StdinPipe(); err != nil {
 			return err
 		}
