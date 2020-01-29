@@ -1,6 +1,8 @@
 package library
 
 import (
+	"fmt"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -15,12 +17,13 @@ var (
 
 type RegisteredComponent struct {
 	Type     reflected.Type
+	Name     string
 	Filepath string
 	ID       string
 }
 
 func (rc *RegisteredComponent) New() manifold.Component {
-	return newComponent(rc.Type.Name(), rc.NewValue(), rc.ID)
+	return newComponent(rc.Name, rc.NewValue(), rc.ID)
 }
 
 func (rc *RegisteredComponent) NewValue() interface{} {
@@ -31,8 +34,10 @@ func Register(v interface{}, id, filepath string) {
 	if filepath == "" {
 		_, filepath, _, _ = runtime.Caller(1)
 	}
+	t := reflected.ValueOf(v).Type()
 	registered = append(registered, &RegisteredComponent{
-		Type:     reflected.ValueOf(v).Type(),
+		Type:     t,
+		Name:     fmt.Sprintf("%s.%s", path.Base(t.PkgPath()), t.Name()),
 		Filepath: filepath,
 		ID:       id,
 	})
@@ -45,7 +50,7 @@ func Names() []string {
 		if rc.ID != "" {
 			continue
 		}
-		names = append(names, rc.Type.Name())
+		names = append(names, rc.Name)
 	}
 	return names
 }
@@ -58,7 +63,7 @@ func Registered() []*RegisteredComponent {
 
 func Lookup(name string) *RegisteredComponent {
 	for _, rc := range registered {
-		if rc.Type.Name() == name {
+		if rc.Name == name {
 			return rc
 		}
 	}

@@ -148,9 +148,7 @@ func (i *Image) Load() (manifold.Object, error) {
 	manifold.Walk(obj, func(o manifold.Object) {
 		o.UpdateRegistry()
 		for _, c := range o.Components() {
-			if e, ok := c.Pointer().(componentEnabler); ok {
-				e.ComponentEnable()
-			}
+			c.Reload()
 		}
 	})
 

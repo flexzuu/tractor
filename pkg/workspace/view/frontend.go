@@ -283,14 +283,22 @@ func (s *State) Update(root manifold.Object) {
 
 			var filepath string
 			if com.ID() != "" {
-				filepath = library.LookupID(com.ID()).Filepath
+				rc := library.LookupID(com.ID())
+				if rc == nil {
+					panic("component ID not in library: " + com.ID())
+				}
+				filepath = rc.Filepath
 			} else {
-				filepath = library.Lookup(com.Name()).Filepath
+				rc := library.Lookup(com.Name())
+				if rc == nil {
+					panic("component name not in library: " + com.Name())
+				}
+				filepath = rc.Filepath
 			}
 
 			var related []string
 			for _, rc := range library.Related(library.Lookup(com.Name())) {
-				related = append(related, rc.Type.Name())
+				related = append(related, rc.Name)
 			}
 
 			node.Components = append(node.Components, Component{
@@ -322,7 +330,7 @@ func New(root manifold.Object) *State {
 	}
 	for _, com := range library.Registered() {
 		state.Components = append(state.Components, ComponentType{
-			Name:     com.Type.Name(),
+			Name:     com.Name,
 			Filepath: com.Filepath,
 		})
 	}

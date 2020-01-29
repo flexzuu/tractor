@@ -15,6 +15,7 @@ import (
 )
 
 const WatchInterval = 100 * time.Millisecond
+const ComponentName = "file.Explorer"
 
 type FrontendUpdater interface {
 	UpdateView()
@@ -60,7 +61,7 @@ func (c *Explorer) ComponentEnable() {
 
 	parent := c.Object.Parent()
 	if parent != nil {
-		if com := parent.Component("Explorer"); com != nil {
+		if com := parent.Component(ComponentName); com != nil {
 			c.parentExplorer = com.Pointer().(*Explorer)
 			c.Watcher = c.parentExplorer.Watcher
 		}
@@ -87,6 +88,7 @@ func (c *Explorer) ComponentEnable() {
 
 func (c *Explorer) ComponentDisable() {
 	c.Unwatch(c)
+	c.Watcher = nil
 }
 
 func (c *Explorer) handleChanges() {
@@ -101,7 +103,7 @@ func (c *Explorer) handleChanges() {
 			case watcher.Create:
 				obj := object.New(event.Name())
 				if event.IsDir() {
-					obj.AppendComponent(library.NewComponent("Explorer", &Explorer{
+					obj.AppendComponent(library.NewComponent(ComponentName, &Explorer{
 						Filepath: event.Path,
 					}, ""))
 				}
@@ -115,7 +117,7 @@ func (c *Explorer) handleChanges() {
 				obj := e.Object.FindChild(event.Name())
 				if obj != nil {
 					obj.SetName(filepath.Base(event.Path))
-					if c := obj.Component("Explorer"); c != nil {
+					if c := obj.Component(ComponentName); c != nil {
 						c.Pointer().(*Explorer).Filepath = event.Path
 					}
 				}
@@ -127,7 +129,7 @@ func (c *Explorer) handleChanges() {
 				obj := oe.Object.FindChild(event.Name())
 				if obj != nil {
 					obj.SetName(filepath.Base(event.Path))
-					if c := obj.Component("Explorer"); c != nil {
+					if c := obj.Component(ComponentName); c != nil {
 						c.Pointer().(*Explorer).Filepath = event.Path
 					}
 				}
@@ -174,7 +176,7 @@ func (c *Explorer) ChildNodes() (objs []manifold.Object) {
 		}
 		obj := object.New(f.Name())
 		if f.IsDir() {
-			obj.AppendComponent(library.NewComponent("Explorer", &Explorer{
+			obj.AppendComponent(library.NewComponent(ComponentName, &Explorer{
 				Filepath: path.Join(c.Filepath, f.Name()),
 			}, ""))
 		}
