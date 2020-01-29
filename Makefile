@@ -25,7 +25,7 @@ versions:
 	
 qtalk:
 	git submodule update --init --recursive
-
+	make -C qtalk link
 
 local/bin:
 	mkdir -p local/bin
@@ -39,7 +39,7 @@ local/bin/tractor: local/bin
 local/workspace:
 	mkdir -p local
 	cp -r data/workspace local/workspace
-	mv local/workspace/workspace.go.data local/workspace/workspace.go
+	mv local/workspace/tractor.go.data local/workspace/tractor.go
 	mkdir -p ~/.tractor/workspaces
 	rm ~/.tractor/workspaces/dev || true
 	ln -fs $(PWD)/local/workspace ~/.tractor/workspaces/dev
