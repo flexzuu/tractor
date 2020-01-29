@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/manifold/tractor/pkg/manifold"
+	"github.com/manifold/tractor/pkg/manifold/image/gen"
 	"github.com/manifold/tractor/pkg/manifold/library"
 	"github.com/manifold/tractor/pkg/manifold/object"
 	"github.com/spf13/afero"
@@ -74,17 +75,7 @@ func (i *Image) CreateObjectPackage(obj manifold.Object) error {
 		return nil
 	}
 
-	src := fmt.Sprintf(`package object
-
-import "github.com/manifold/tractor/pkg/manifold/library"
-
-func init() {
-	library.Register(&Main{}, "%s", "")
-}
-
-type Main struct{}
-`, obj.ID())
-
+	src := "package object\n\ntype Main struct {\n\n}\n"
 	if err := afero.WriteFile(i.pkgFs, filepath, []byte(src), 0644); err != nil {
 		return err
 	}
@@ -99,19 +90,22 @@ func (i *Image) IndexObjectPackages() error {
 		return err
 	}
 
-	imports := []string{}
+	objs := []string{}
 	fi, err := afero.ReadDir(i.pkgFs, ObjectDir)
 	if err != nil {
 		return err
 	}
 	for _, info := range fi {
 		if info.IsDir() {
-			imports = append(imports, fmt.Sprintf(` _ "workspace/pkg/obj/%s"`, info.Name()))
+			objs = append(objs, info.Name())
 		}
 	}
-	src := fmt.Sprintf("package obj\nimport (\n%s\n)\n", strings.Join(imports, "\n"))
+	src, err := gen.ObjectPackageIndex(objs)
+	if err != nil {
+		return err
+	}
 
-	return afero.WriteFile(i.pkgFs, path.Join(ObjectDir, "import.go"), []byte(src), 0644)
+	return afero.WriteFile(i.pkgFs, path.Join(ObjectDir, "import.go"), src, 0644)
 }
 
 func (i *Image) Load() (manifold.Object, error) {
@@ -169,23 +163,9 @@ func (i *Image) loadObject(fs afero.Fs, path string) (manifold.Object, []manifol
 		return nil, nil, err
 	}
 
-	var refs []manifold.SnapshotRef
 	obj := object.FromSnapshot(snapshot)
+	refs := library.LoadComponents(obj, snapshot)
 	i.lastObjPath[obj.ID()] = path
-	for _, c := range snapshot.Components {
-		refs = append(refs, c.Refs...)
-		com := library.NewComponent(c.Name, c.Value, c.ID)
-		com.SetEnabled(c.Enabled)
-		obj.AppendComponent(com)
-		if snapshot.Main != "" && c.ID == snapshot.Main {
-			obj.SetMain(com)
-		}
-	}
-	if snapshot.Main == "" && obj.Main() == nil {
-		if com := library.LookupID(obj.ID()); com != nil {
-			obj.SetMain(com.New())
-		}
-	}
 
 	for _, childInfo := range snapshot.Children {
 		name := pathNameFromImage(childInfo)

@@ -265,7 +265,11 @@ type ComponentInitializer interface {
 func (o *object) UpdateRegistry() (err error) {
 	entries := RegistryPreloader(o)
 	for _, com := range o.Components() {
-		entries = append(entries, com.Pointer())
+		v := com.Pointer()
+		if v == nil {
+			continue
+		}
+		entries = append(entries, v)
 	}
 	o.registry, err = registry.New(entries...)
 	return

@@ -63,6 +63,7 @@ export class TractorService implements WidgetFactory {
     protected api: qrpc.API;
 
     public components: any[];
+    public prefabs: any[];
 
     protected widget?: TractorTreeWidget;
     protected readonly onDidChangeEmitter = new Emitter<ObjectNode[]>();
@@ -130,6 +131,7 @@ export class TractorService implements WidgetFactory {
                 var data = await c.decode();
                 //this.logger.warn(data);
                 this.components = data.components;
+                this.prefabs = data.prefabs;
                 this.refreshRegistries();
                 if (this.widget) {
                     this.widget.setData(data);
@@ -186,6 +188,20 @@ export class TractorService implements WidgetFactory {
             });
             
         });
+        this.prefabs.forEach((p) => {
+            let id = `tractor:prefab-add:${p.id}`
+            let label = `Load Prefab: ${p.name}`
+
+            this.commands.unregisterCommand(id);
+            this.commands.registerCommand({id:id, label:label}, {
+                execute: () =>  {
+                    let node = this.widget.model.selectedNodes[0];
+                    if (node) {
+                        this.loadPrefab(p.id, node.id);
+                    }
+                }
+            });
+        });
     }
 
     renameNode(id: string, name: string) {
@@ -205,6 +221,10 @@ export class TractorService implements WidgetFactory {
 
     addComponent(component: string, nodeId: string) {
         this.client.call("appendComponent", {ID: nodeId, Name: component});
+    }
+
+    loadPrefab(id: string, nodeId: string) {
+        this.client.call("loadPrefab", {ID: nodeId, Name: id});
     }
     
 

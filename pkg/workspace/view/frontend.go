@@ -8,6 +8,7 @@ import (
 
 	"github.com/manifold/tractor/pkg/manifold"
 	"github.com/manifold/tractor/pkg/manifold/library"
+	"github.com/manifold/tractor/pkg/manifold/prefab"
 
 	//"github.com/manifold/tractor/pkg/repl"
 
@@ -52,10 +53,21 @@ type Project struct {
 	Path string `msgpack:"path"`
 }
 
+type Prefab struct {
+	Name string `msgpack:"name"`
+	ID   string `msgpack:"id"`
+}
+
+type ComponentType struct {
+	Filepath string `msgpack:"filepath"`
+	Name     string `msgpack:"name"`
+}
+
 type State struct {
 	Projects       []Project         `msgpack:"projects"`
 	CurrentProject string            `msgpack:"currentProject"`
 	Components     []ComponentType   `msgpack:"components"`
+	Prefabs        []Prefab          `msgpack:"prefabs"`
 	Hierarchy      []string          `msgpack:"hierarchy"`
 	Nodes          map[string]Node   `msgpack:"nodes"`
 	NodePaths      map[string]string `msgpack:"nodePaths"`
@@ -316,11 +328,6 @@ func (s *State) Update(root manifold.Object) {
 	})
 }
 
-type ComponentType struct {
-	Filepath string `msgpack:"filepath"`
-	Name     string `msgpack:"name"`
-}
-
 func New(root manifold.Object) *State {
 	state := &State{
 		Projects:       []Project{},
@@ -332,6 +339,12 @@ func New(root manifold.Object) *State {
 		state.Components = append(state.Components, ComponentType{
 			Name:     com.Name,
 			Filepath: com.Filepath,
+		})
+	}
+	for _, pf := range prefab.Registered() {
+		state.Prefabs = append(state.Prefabs, Prefab{
+			Name: pf.Name,
+			ID:   pf.ID,
 		})
 	}
 	state.Update(root)

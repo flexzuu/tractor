@@ -270,6 +270,15 @@ type Object interface {
 	UpdateRegistry() error
 }
 
+type ObjectPrefab struct {
+	ID         string
+	Name       string
+	Attrs      map[string]interface{}
+	Children   []ObjectPrefab
+	Components []ComponentSnapshot
+	Main       string
+}
+
 type ObjectSnapshot struct {
 	ID         string
 	Name       string

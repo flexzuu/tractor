@@ -9,6 +9,7 @@ import (
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 	"github.com/manifold/tractor/pkg/manifold/library"
 	"github.com/manifold/tractor/pkg/manifold/object"
+	"github.com/manifold/tractor/pkg/manifold/prefab"
 )
 
 type AppendNodeParams struct {
@@ -111,7 +112,7 @@ func (s *Service) ReloadComponent() func(qrpc.Responder, *qrpc.Call) {
 				r.Return(err)
 				return
 			}
-		}		
+		}
 		n.UpdateRegistry()
 		s.updateView()
 		r.Return(nil)
@@ -132,6 +133,29 @@ func (s *Service) AddDelegate() func(qrpc.Responder, *qrpc.Call) {
 			return
 		}
 		r.Return(s.State.Image.CreateObjectPackage(obj))
+	}
+}
+
+func (s *Service) LoadPrefab() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var params AppendNodeParams
+		err := c.Decode(&params)
+		if err != nil {
+			r.Return(err)
+			return
+		}
+		obj := s.State.Root.FindID(params.ID)
+		if obj == nil {
+			r.Return(nil)
+			return
+		}
+		pf := prefab.LookupID(params.Name)
+		if pf != nil {
+			child := pf.New()
+			obj.AppendChild(child)
+		}
+		s.updateView()
+		r.Return(nil)
 	}
 }
 

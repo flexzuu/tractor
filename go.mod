@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/d5/tengo v1.24.3
+	github.com/dave/jennifer v1.4.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/daviddengcn/go-colortext v0.0.0-20180409174941-186a3d44e920
 	github.com/dustin/go-jsonpointer v0.0.0

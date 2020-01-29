@@ -273,6 +273,9 @@ function ComponentInspector(props) {
     if (props.component !== undefined) {
         heading = props.component.name;
     }
+    if (heading.includes(".Main")) {
+        heading = heading.split(".")[1];
+    }
     return (
         <List.Item as="div">
             {props.component &&
@@ -427,7 +430,7 @@ function AddComponentButton(props) {
 
 function Inspector(props) {
     const node = props.node || {name: "no node", components: []};
-    const delegatePlaceholder = (props.node && (node.components.length === 0 || node.components[0].name !== "Main"));
+    const delegatePlaceholder = (props.node && (node.components.length === 0 || !node.components[0].name.includes(".Main")));
     let ancestors = [];
     if (node.path) {
         ancestors = node.path.split("/");

@@ -45,6 +45,9 @@ func (s Status) String() string {
 }
 
 func Running(c *Subcmd) bool {
+	if c == nil {
+		return false
+	}
 	c.statMu.Lock()
 	defer c.statMu.Unlock()
 	return c.status == StatusStarting || c.status == StatusStarted

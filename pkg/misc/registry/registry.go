@@ -103,6 +103,9 @@ func (r *Registry) AssignableTo(t reflect.Type) []*Entry {
 // for that slice type.
 func (r *Registry) Populate(v interface{}) {
 	rv := reflect.ValueOf(v)
+	if !rv.IsValid() {
+		return
+	}
 	// TODO: assert struct
 	var fields []reflect.Value
 	for i := 0; i < rv.Elem().NumField(); i++ {

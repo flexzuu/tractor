@@ -39,6 +39,10 @@ export namespace TractorCommands {
         id: 'tractor:component-add',
         label: 'Add Component...'
     };
+    export const ADD_PREFAB: Command = {
+        id: 'tractor:prefab-add',
+        label: 'From Prefab...'
+    };
 }
 
 export const TRACTOR_CONTEXT_MENU: MenuPath = ['tractor-context-menu'];
@@ -160,6 +164,16 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
                 }
             }
         });
+        commands.registerCommand(TractorCommands.ADD_PREFAB, {
+            execute: () => {
+                let node = (this.shell.currentWidget as TractorTreeWidget).model.selectedNodes[0];
+                if (node) {
+                    this.quickpick.show(this.tractor.prefabs.map((el)=>{ return {"label": el.name, "value": el.id}})).then((selection) => {
+                        this.tractor.loadPrefab(selection, node.id);
+                    })
+                }
+            }
+        });
         commands.registerCommand(TractorCommands.ADD_NODE, {
             execute: () => {
                 let node = (this.shell.currentWidget as TractorTreeWidget).model.selectedNodes[0];
@@ -230,6 +244,9 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
         menus.registerSubmenu(TractorContextMenu.NEW, 'New');
         menus.registerMenuAction(TractorContextMenu.NEW, {
             commandId: TractorCommands.ADD_NODE.id
+        });
+        menus.registerMenuAction(TractorContextMenu.NEW, {
+            commandId: TractorCommands.ADD_PREFAB.id
         });
         
         menus.registerMenuAction(TractorContextMenu.WORKSPACE, {

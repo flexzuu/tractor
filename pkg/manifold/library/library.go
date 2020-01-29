@@ -93,3 +93,24 @@ func Related(c *RegisteredComponent) (related []*RegisteredComponent) {
 	}
 	return
 }
+
+func LoadComponents(obj manifold.Object, snapshot manifold.ObjectSnapshot) (refs []manifold.SnapshotRef) {
+	for _, c := range snapshot.Components {
+		refs = append(refs, c.Refs...)
+		if c.Value == nil {
+			c.Value = map[string]interface{}{}
+		}
+		com := NewComponent(c.Name, c.Value, c.ID)
+		com.SetEnabled(c.Enabled)
+		obj.AppendComponent(com)
+		if snapshot.Main != "" && c.ID == snapshot.Main {
+			obj.SetMain(com)
+		}
+	}
+	if snapshot.Main == "" && obj.Main() == nil {
+		if com := LookupID(obj.ID()); com != nil {
+			obj.SetMain(com.New())
+		}
+	}
+	return
+}

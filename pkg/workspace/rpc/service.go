@@ -63,6 +63,7 @@ func (s *Service) InitializeDaemon() (err error) {
 	s.api.HandleFunc("subscribe", s.Subscribe())
 	s.api.HandleFunc("appendNode", s.AppendNode())
 	s.api.HandleFunc("deleteNode", s.DeleteNode())
+	s.api.HandleFunc("loadPrefab", s.LoadPrefab())
 	s.api.HandleFunc("appendComponent", s.AppendComponent())
 	s.api.HandleFunc("setValue", s.SetValue())
 	// s.api.HandleFunc("setExpression", s.SetExpression())
