@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+	github.com/c-bata/go-prompt v0.2.3
+	github.com/containous/yaegi v0.7.4
 	github.com/d5/tengo v1.24.3
 	github.com/dave/jennifer v1.4.0
 	github.com/davecgh/go-spew v1.1.1
@@ -23,10 +25,13 @@ require (
 	github.com/lxn/walk v0.0.0-20191128110447-55ccb3a9f5c1 // indirect
 	github.com/lxn/win v0.0.0-20191128105842-2da648fda5b4 // indirect
 	github.com/manifold/qtalk v0.0.0-20200128221948-db808d3db838
+	github.com/mattn/go-runewidth v0.0.8 // indirect
+	github.com/mattn/go-tty v0.0.3 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/nickvanw/ircx/v2 v2.0.0
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 // indirect
 	github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rjeczalik/notify v0.9.2

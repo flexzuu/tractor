@@ -1,15 +1,25 @@
 package rpc
 
 import (
+	"bufio"
+	"context"
 	"fmt"
+	"go/build"
+	"go/scanner"
+	"io"
+	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
 
+	"github.com/containous/yaegi/interp"
+	"github.com/containous/yaegi/stdlib"
+	"github.com/davecgh/go-spew/spew"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 	"github.com/manifold/tractor/pkg/manifold/library"
 	"github.com/manifold/tractor/pkg/manifold/object"
 	"github.com/manifold/tractor/pkg/manifold/prefab"
+	"github.com/manifold/tractor/pkg/workspace/repl"
 )
 
 type AppendNodeParams struct {
@@ -52,21 +62,63 @@ func (s *Service) Reload() func(qrpc.Responder, *qrpc.Call) {
 	}
 }
 
-// api.HandleFunc("repl", func(r qrpc.Responder, c *qrpc.Call) {
-// 	var params DelegateParams
-// 	_ = c.Decode(&params)
-// 	// ^^ TODO: make sure this isn't necessary before hijacking
-// 	ch, err := r.Hijack(nil)
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-// 	repl := repl.NewREPL(func(v interface{}) {
-// 		fmt.Fprintf(ch, "%s\n", v)
-// 	})
-// 	repl.Run(ch, ch, map[string]interface{}{
-// 		"Root": root,
-// 	})
-// })
+func (s *Service) Repl() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var params DelegateParams
+		_ = c.Decode(&params)
+		// ^^ TODO: make sure this isn't necessary before hijacking
+		ch, err := r.Hijack(nil)
+		if err != nil {
+			log.Println(err)
+		}
+
+		i := interp.New(interp.Options{GoPath: build.Default.GOPATH})
+		i.Use(stdlib.Symbols)
+		i.Use(interp.Symbols)
+		i.Use(repl.Symbols)
+		i.Use(map[string]map[string]reflect.Value{
+			"console": map[string]reflect.Value{
+				"View":  reflect.ValueOf(s.viewState),
+				"State": reflect.ValueOf(s.State),
+			},
+		})
+		i.Eval("import \"console\"")
+		i.Eval("import \"github.com/manifold/tractor/pkg/manifold\"")
+		i.Eval("state := console.State")
+		i.Eval("view := console.View")
+		i.Eval("selected := func() manifold.Object { return state.Root.FindID(view.SelectedNode) }")
+		func(i *interp.Interpreter, in io.Reader, out io.Writer) {
+			scs := spew.ConfigState{
+				MaxDepth: 2,
+				Indent:   "  ",
+			}
+			s := bufio.NewScanner(in)
+			src := ""
+			for s.Scan() {
+				src += s.Text() + "\n"
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				v, err := i.EvalWithContext(ctx, src)
+				if err != nil {
+					switch err.(type) {
+					case scanner.ErrorList:
+						// Early failure in the scanner: the source is incomplete
+						// and no AST could be produced, neither compiled / run.
+						// Get one more line, and retry
+						continue
+					default:
+						fmt.Fprintln(out, err)
+					}
+				} else if v.IsValid() {
+					scs.Fdump(out, v.Interface())
+					fmt.Fprintf(out, "\r")
+				}
+				src = ""
+			}
+		}(i, ch, ch)
+
+	}
+}
 
 func (s *Service) RemoveComponent() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {
