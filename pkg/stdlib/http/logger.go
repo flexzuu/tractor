@@ -10,9 +10,8 @@ type Logger struct {
 	logger *negroni.Logger
 }
 
-func (c *Logger) Initialize() error {
+func (c *Logger) ComponentEnable() {
 	c.logger = negroni.NewLogger()
-	return nil
 }
 
 func (c *Logger) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

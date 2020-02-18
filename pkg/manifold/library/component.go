@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/manifold/tractor/pkg/manifold"
@@ -77,6 +78,10 @@ func (c *component) SetField(path string, value interface{}) error {
 }
 
 func (c *component) FieldType(path string) reflect.Type {
+	v := jsonpointer.Reflect(c.Pointer(), path)
+	if v != nil {
+		return reflect.TypeOf(v)
+	}
 	parts := strings.Split(path, "/")
 	rt := reflected.TypeOf(c.Pointer())
 	for _, part := range parts {
@@ -249,7 +254,10 @@ func extractRefs(obj manifold.Object, basePath string, v interface{}) (out map[s
 		fieldPath := path.Join(basePath, field)
 		var subrefs []manifold.SnapshotRef
 		switch ft.Kind() {
-		case reflect.Struct, reflect.Map, reflect.Slice:
+		case reflect.Slice:
+			out[field], subrefs = extractRefsSlice(obj, fieldPath, rv.Get(field).Interface())
+			refs = append(refs, subrefs...)
+		case reflect.Struct, reflect.Map:
 			out[field], subrefs = extractRefs(obj, fieldPath, rv.Get(field).Interface())
 			refs = append(refs, subrefs...)
 		case reflect.Ptr, reflect.Interface:
@@ -267,6 +275,51 @@ func extractRefs(obj manifold.Object, basePath string, v interface{}) (out map[s
 			}
 		default:
 			out[field] = rv.Get(field).Interface()
+		}
+	}
+	return
+}
+
+func extractRefsSlice(obj manifold.Object, basePath string, v interface{}) (out []interface{}, refs []manifold.SnapshotRef) {
+	if obj.Root() == nil {
+		return
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice {
+		return
+	}
+	fmt.Printf("SLICE: %#v\n", v)
+	for i := 0; i < rv.Len(); i++ {
+		field := rv.Index(i)
+		fmt.Printf("ELEM: %#v %s %s\n", field.Interface(), field.Type(), field.Type().Kind())
+		ft := field.Type()
+		fieldPath := path.Join(basePath, strconv.Itoa(i))
+		var subrefs []manifold.SnapshotRef
+		var vv interface{}
+		switch ft.Kind() {
+		case reflect.Slice:
+			vv, subrefs = extractRefsSlice(obj, fieldPath, field.Interface())
+			out = append(out, vv)
+			refs = append(refs, subrefs...)
+		case reflect.Struct, reflect.Map:
+			vv, subrefs = extractRefs(obj, fieldPath, field.Interface())
+			out = append(out, vv)
+			refs = append(refs, subrefs...)
+		case reflect.Ptr, reflect.Interface:
+			if field.IsNil() {
+				continue
+			}
+			target := obj.Root().FindPointer(field.Interface())
+			if target != nil {
+				refs = append(refs, manifold.SnapshotRef{
+					ObjectID: obj.ID(),
+					Path:     fieldPath,
+					TargetID: target.ID(),
+				})
+				out = append(out, nil)
+			}
+		default:
+			out = append(out, field.Interface())
 		}
 	}
 	return

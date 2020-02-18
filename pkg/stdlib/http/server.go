@@ -8,11 +8,18 @@ import (
 	"github.com/urfave/negroni"
 )
 
-type Server struct {
-	Listener net.Listener
-	Handler  http.Handler
+type Middleware interface {
+	ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
+}
 
-	s *http.Server
+type Server struct {
+	http.Server
+
+	Listener   net.Listener
+	Handler    http.Handler
+	Middleware []Middleware
+
+	serving bool
 }
 
 func (c *Server) ComponentEnable() {
@@ -22,18 +29,20 @@ func (c *Server) ComponentEnable() {
 	log.Println("starting http server")
 	n := negroni.New()
 	n.UseHandler(c.Handler)
-	c.s = &http.Server{
+	c.Server = http.Server{
 		Handler: n,
 	}
 	go func() {
-		if err := c.s.Serve(c.Listener); err != nil {
+		c.serving = true
+		if err := c.Server.Serve(c.Listener); err != nil {
+			c.serving = false
 			log.Fatal(err)
 		}
 	}()
 }
 
 func (c *Server) ComponentDisable() {
-	if c.s != nil {
-		c.s.Close()
+	if c.serving {
+		c.Server.Close()
 	}
 }

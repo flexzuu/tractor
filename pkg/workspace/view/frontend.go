@@ -229,7 +229,14 @@ func exportField(o reflected.Value, field, path string, n manifold.Object) Field
 			Value: path,
 		}
 	default:
-		panic(o.Type().FieldType(field).Kind())
+		fmt.Println("frontend: unknown type:", o, field)
+		return Field{
+			Name: field,
+			Path: fieldPath,
+			// Expression: expr,
+			Type:  "string",
+			Value: "INVALID",
+		}
 	}
 }
 
