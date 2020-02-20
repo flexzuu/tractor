@@ -78,10 +78,11 @@ func (c *component) SetField(path string, value interface{}) error {
 }
 
 func (c *component) FieldType(path string) reflect.Type {
-	v := jsonpointer.Reflect(c.Pointer(), path)
-	if v != nil {
-		return reflect.TypeOf(v)
-	}
+	// v := jsonpointer.Reflect(c.Pointer(), path)
+	// if v != nil {
+	// 	return reflect.TypeOf(v)
+	// }
+	fmt.Println(path)
 	parts := strings.Split(path, "/")
 	rt := reflected.TypeOf(c.Pointer())
 	for _, part := range parts {

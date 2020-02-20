@@ -267,6 +267,8 @@ type Object interface {
 
 	Snapshot() ObjectSnapshot
 
+	Refresh() error
+
 	UpdateRegistry() error
 }
 

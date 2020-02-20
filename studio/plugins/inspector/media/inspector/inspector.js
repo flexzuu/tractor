@@ -80,7 +80,7 @@ class InspectorContainer extends React.Component {
         } else {
             node = this.state.remote.nodes[this.state.lastSelected];
         }
-        console.log(node);
+        console.debug(node);
         return <Inspector node={node} components={this.state.remote.components} />;
     }
   }
@@ -90,6 +90,7 @@ function remoteAction(action, params) {
         case "setValue":
         case "setExpression":
         case "callMethod":
+        case "refreshObject":
         case "removeComponent":
         case "appendComponent":
         case "reloadComponent":
@@ -255,6 +256,21 @@ function ComponentManageMenu(props) {
                 <Dropdown.Item onClick={() => remoteAction("reloadComponent", {ID: props.nodeId, Component: props.component.name})}>Reload</Dropdown.Item>
                     <Dropdown.Item onClick={() => remoteAction("edit", {path: props.component.filepath})}>Edit</Dropdown.Item>
                     <Dropdown.Item onClick={() => remoteAction("removeComponent", {ID: props.nodeId, Component: props.component.name})}>Delete</Dropdown.Item>
+                </Dropdown.Content>
+            </Dropdown.Menu>
+        </Dropdown>
+    );
+}
+
+function ObjectManageMenu(props) {
+    return (
+        <Dropdown align="right" style={props.style}>
+            <Dropdown.Trigger>
+                <Icon size="small"><i className="fas fa-cog"></i></Icon>
+            </Dropdown.Trigger>
+            <Dropdown.Menu>
+                <Dropdown.Content>
+                <Dropdown.Item onClick={() => remoteAction("refreshObject", {ID: props.nodeId})}>Refresh</Dropdown.Item>
                 </Dropdown.Content>
             </Dropdown.Menu>
         </Dropdown>
@@ -439,6 +455,7 @@ function Inspector(props) {
     }
     return (
         <section>
+            {node.id && <ObjectManageMenu nodeId={node.id} style={{float: "right"}} />}
             <Breadcrumb style={{marginBottom: "0"}}>
                 {ancestors.map((name, idx) => 
                     <Breadcrumb.Item key={"path-"+idx} as="div" style={{color: "white", margin: "5px"}}>{name}</Breadcrumb.Item>

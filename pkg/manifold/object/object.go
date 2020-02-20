@@ -256,10 +256,19 @@ func (o *object) RemoveID(id string) manifold.Object {
 	return obj
 }
 
-// TODO: rethink this
-// NOTE: this is because you can't use registry to create references to Nodes
-type ComponentInitializer interface {
-	InitializeComponent(o manifold.Object)
+func (o *object) Refresh() error {
+	coms := o.Components()
+	for i := len(coms) - 1; i >= 0; i-- {
+		coms[i].SetEnabled(false)
+	}
+	if err := o.UpdateRegistry(); err != nil {
+		return err
+	}
+	o.registry.SelfPopulate()
+	for _, com := range o.Components() {
+		com.SetEnabled(true)
+	}
+	return nil
 }
 
 func (o *object) UpdateRegistry() (err error) {

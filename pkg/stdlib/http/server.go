@@ -29,6 +29,9 @@ func (c *Server) ComponentEnable() {
 	log.Println("starting http server")
 	n := negroni.New()
 	n.UseHandler(c.Handler)
+	for _, m := range c.Middleware {
+		n.Use(m)
+	}
 	c.Server = http.Server{
 		Handler: n,
 	}
@@ -36,13 +39,16 @@ func (c *Server) ComponentEnable() {
 		c.serving = true
 		if err := c.Server.Serve(c.Listener); err != nil {
 			c.serving = false
-			log.Fatal(err)
+			log.Println("http server stopped")
 		}
 	}()
 }
 
 func (c *Server) ComponentDisable() {
 	if c.serving {
-		c.Server.Close()
+		err := c.Server.Close()
+		if err != nil {
+			log.Fatal("SERVER DISABLE", err)
+		}
 	}
 }

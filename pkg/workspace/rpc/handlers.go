@@ -145,6 +145,29 @@ func (s *Service) RemoveComponent() func(qrpc.Responder, *qrpc.Call) {
 	}
 }
 
+func (s *Service) RefreshObject() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var params NodeParams
+		err := c.Decode(&params)
+		if err != nil {
+			r.Return(err)
+			return
+		}
+		n := s.State.Root.FindID(params.ID)
+		if n == nil {
+			r.Return(fmt.Errorf("unable to find node: %s", params.ID))
+			return
+		}
+		if err := n.Refresh(); err != nil {
+			r.Return(err)
+			return
+		}
+		s.updateView()
+		fmt.Println("REFRESHED")
+		r.Return(nil)
+	}
+}
+
 func (s *Service) ReloadComponent() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {
 		var params RemoveComponentParams

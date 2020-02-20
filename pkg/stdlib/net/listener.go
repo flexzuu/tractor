@@ -16,13 +16,17 @@ func (c *TCPListener) ComponentEnable() {
 	var err error
 	c.l, err = net.Listen("tcp", c.Address)
 	if err != nil {
+		// TODO: should we really exit?
 		log.Fatal(err)
 	}
 }
 
 func (c *TCPListener) ComponentDisable() {
 	if c.l != nil {
-		c.l.Close()
+		err := c.l.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

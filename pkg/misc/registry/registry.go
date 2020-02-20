@@ -156,11 +156,13 @@ func isNilOrZero(v reflect.Value, t reflect.Type) bool {
 func (r *Registry) ValueTo(rv reflect.Value) {
 	for _, e := range r.Entries() {
 		if rv.Elem().Type().Kind() == reflect.Struct {
+			// struct
 			if e.Value.Elem().Type().AssignableTo(rv.Elem().Type()) {
 				rv.Elem().Set(e.Value.Elem())
 				return
 			}
 		} else {
+			// interface
 			if e.Value.Type().Implements(rv.Elem().Type()) {
 				rv.Elem().Set(e.Value)
 				return
