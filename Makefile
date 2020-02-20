@@ -15,6 +15,7 @@ kill:
 clobber:
 	rm -rf local/bin/tractor
 	rm -rf local/bin/tractor-agent
+	rm -rf studio/plugins/*/lib
 
 versions:
 	@go version
