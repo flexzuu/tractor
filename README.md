@@ -17,6 +17,7 @@ These are instructions for development, which is the only way to use Tractor rig
    * g++
  * for mac: 
    * XCode Command Line Tools
+   * if you run into node-gyp issues [read this](https://github.com/nodejs/node-gyp/blob/master/macOS_Catalina.md#the-acid-test)
 
 See what versions you have with `make versions`:
 ```

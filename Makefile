@@ -1,6 +1,6 @@
-.PHONY: build setup clobber dev versions studio kill qtalk
+.PHONY: build setup clean clobber dev versions studio kill qtalk
 
-build: clobber local/bin/tractor-agent local/bin/tractor studio/plugins/*/lib
+build: clean local/bin/tractor-agent local/bin/tractor studio/plugins/*/lib
 
 setup: local/workspace local/bin qtalk studio
 	make build
@@ -12,10 +12,19 @@ kill:
 	@killall node || true
 	@killall tractor-agent || true
 
-clobber:
+clean:
 	rm -rf local/bin/tractor
 	rm -rf local/bin/tractor-agent
 	rm -rf studio/plugins/*/lib
+
+clobber: clean
+	rm -rf studio/node_modules	
+	rm -rf studio/shell/lib
+	rm -rf studio/shell/src-gen
+	rm -rf studio/shell/node_modules
+	rm -rf studio/shell/webpack.config.js
+	rm -rf studio/extension/lib
+	rm -rf studio/extension/node_modules
 
 versions:
 	@go version
