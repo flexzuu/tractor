@@ -9,7 +9,8 @@
       "@fortawesome/fontawesome-free": "latest"
     },
     "resolutions": {
-      "js-yaml": "^3.13.1"
+      "js-yaml": "^3.13.1",
+      "debug": "^2.6.9"
     },
     "devDependencies": {
       
