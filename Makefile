@@ -2,7 +2,7 @@
 
 build: clobber local/bin/tractor-agent local/bin/tractor 
 
-setup: local/workspace local/bin studio qtalk
+setup: local/workspace local/bin qtalk studio
 	make build
 
 dev:
