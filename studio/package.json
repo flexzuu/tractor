@@ -6,10 +6,10 @@
       "rebuild:electron": "theia rebuild:electron"
     },
     "dependencies": {
-        "@fortawesome/fontawesome-free": "latest"
+      "@fortawesome/fontawesome-free": "latest"
     },
     "resolutions": {
-        
+      "js-yaml": "^3.13.1"
     },
     "devDependencies": {
       
