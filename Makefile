@@ -1,6 +1,6 @@
 .PHONY: build setup clobber dev versions studio kill qtalk
 
-build: clobber local/bin/tractor-agent local/bin/tractor 
+build: clobber local/bin/tractor-agent local/bin/tractor studio/plugins/*/lib
 
 setup: local/workspace local/bin qtalk studio
 	make build
@@ -13,7 +13,7 @@ kill:
 	@killall tractor-agent || true
 
 clobber:
-	rm -rf local/bin/tractor 
+	rm -rf local/bin/tractor
 	rm -rf local/bin/tractor-agent
 
 versions:
@@ -22,7 +22,7 @@ versions:
 	@git --version
 	@echo "yarn $(shell yarn --version)"
 	@echo "typescript $(shell tsc --version)"
-	
+
 qtalk:
 	git submodule update --init --recursive
 	make -C qtalk link
@@ -53,6 +53,8 @@ studio/node_modules:
 studio/extension/lib:
 	cd studio/extension && yarn build
 
+studio/plugins/%/lib:
+	tsc -p $@/..
+
 studio/shell/src-gen: studio/extension/lib
 	cd studio/shell && yarn build
-
