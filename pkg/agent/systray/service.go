@@ -113,7 +113,11 @@ func (s *Service) Serve(ctx context.Context) {
 				}
 				for _, ws := range workspaces {
 					if ws.Name == msg.Item.Title {
-						open.Start("http://localhost:3000/#" + ws.TargetPath)
+						if len(s.Agent.PreferredBrowser) > 0 {
+							open.StartWith("http://localhost:3000/#"+ws.TargetPath, s.Agent.PreferredBrowser)
+						} else {
+							open.Start("http://localhost:3000/#" + ws.TargetPath)
+						}
 					}
 				}
 			default:

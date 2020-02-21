@@ -12,6 +12,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/BurntSushi/toml"
 	"github.com/fsnotify/fsnotify"
 	"github.com/manifold/tractor/pkg/agent/console"
 	"github.com/manifold/tractor/pkg/misc/daemon"
@@ -21,19 +22,21 @@ import (
 
 // Agent manages multiple workspaces in a directory (default: ~/.tractor).
 type Agent struct {
-	Path                 string // ~/.tractor
+	Path                 string `toml:"-"` // ~/.tractor
+	ConfigPath           string `toml:"-"` // ~/.tractor/config.toml
 	SocketPath           string // ~/.tractor/agent.sock
 	WorkspacesPath       string // ~/.tractor/workspaces
 	WorkspaceSocketsPath string // ~/.tractor/sockets
 	WorkspaceBinPath     string // ~/.tractor/bin
 	GoBin                string
+	PreferredBrowser     string
 	DevMode              bool
 
-	Daemon  *daemon.Daemon
-	Console *console.Service
-	Logger  logging.Logger
+	Daemon  *daemon.Daemon   `toml:"-"`
+	Console *console.Service `toml:"-"`
+	Logger  logging.Logger   `toml:"-"`
 
-	WorkspacesChanged chan struct{}
+	WorkspacesChanged chan struct{} `toml:"-"`
 	workspaces        map[string]*Workspace
 	mu                sync.RWMutex
 }
@@ -65,11 +68,17 @@ func Open(path string, console *console.Service, devMode bool) (*Agent, error) {
 	}
 
 	a.SocketPath = filepath.Join(a.Path, "agent.sock")
+	a.ConfigPath = filepath.Join(a.Path, "config.toml")
 	a.WorkspacesPath = filepath.Join(a.Path, "workspaces")
 	a.WorkspaceBinPath = filepath.Join(a.Path, "bin")
 	a.WorkspaceSocketsPath = filepath.Join(a.Path, "sockets")
 	if a.Logger == nil {
 		a.Logger = &null.Logger{}
+	}
+
+	_, err = toml.DecodeFile(a.ConfigPath, &a)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
 	}
 
 	os.MkdirAll(a.WorkspacesPath, 0700)
