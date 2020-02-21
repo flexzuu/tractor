@@ -11,6 +11,6 @@ type SingleUserBasicAuth struct {
 	Password string
 }
 
-func (c *SingleUserBasicAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	httpauth.SimpleBasicAuth(c.Username, c.Password)(next).ServeHTTP(w, r)
+func (c *SingleUserBasicAuth) Middleware() func(http.Handler) http.Handler {
+	return httpauth.SimpleBasicAuth(c.Username, c.Password)
 }

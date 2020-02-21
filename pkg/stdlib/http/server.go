@@ -4,12 +4,10 @@ import (
 	"log"
 	"net"
 	"net/http"
-
-	"github.com/urfave/negroni"
 )
 
 type Middleware interface {
-	ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc)
+	Middleware() func(http.Handler) http.Handler
 }
 
 type Server struct {
@@ -27,19 +25,19 @@ func (c *Server) ComponentEnable() {
 		return
 	}
 	log.Println("starting http server")
-	n := negroni.New()
-	n.UseHandler(c.Handler)
-	for _, m := range c.Middleware {
-		n.Use(m)
+	h := c.Handler
+	for _, mw := range c.Middleware {
+		adapter := mw.Middleware()
+		h = adapter(h)
 	}
 	c.Server = http.Server{
-		Handler: n,
+		Handler: h,
 	}
 	go func() {
 		c.serving = true
 		if err := c.Server.Serve(c.Listener); err != nil {
 			c.serving = false
-			log.Println("http server stopped")
+			log.Println("http server stopped:", err)
 		}
 	}()
 }

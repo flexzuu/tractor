@@ -78,17 +78,24 @@ func (c *component) SetField(path string, value interface{}) error {
 }
 
 func (c *component) FieldType(path string) reflect.Type {
-	// v := jsonpointer.Reflect(c.Pointer(), path)
-	// if v != nil {
-	// 	return reflect.TypeOf(v)
-	// }
-	fmt.Println(path)
 	parts := strings.Split(path, "/")
-	rt := reflected.TypeOf(c.Pointer())
+	rt := reflect.TypeOf(c.Pointer())
 	for _, part := range parts {
-		rt = rt.FieldType(part)
+		switch rt.Kind() {
+		case reflect.Slice:
+			rt = rt.Elem()
+		case reflect.Struct:
+			field, _ := rt.FieldByName(part)
+			rt = field.Type
+		case reflect.Ptr:
+			// TODO: might not be a struct!
+			field, _ := rt.Elem().FieldByName(part)
+			rt = field.Type
+		default:
+			panic("unhandled type: " + rt.String())
+		}
 	}
-	return rt.Type
+	return rt
 }
 
 func (c *component) CallMethod(path string, args []interface{}, reply interface{}) error {
@@ -163,6 +170,15 @@ func (c *component) SetEnabled(enable bool) {
 		return
 	}
 	c.enabled = enable
+	if enable {
+		if e, ok := c.Pointer().(ComponentEnabler); ok {
+			e.ComponentEnable()
+		}
+	} else {
+		if e, ok := c.Pointer().(ComponentDisabler); ok {
+			e.ComponentDisable()
+		}
+	}
 	notify.Send(c.object, manifold.ObjectChange{
 		Object: c.object,
 		Path:   fmt.Sprintf("%s/::Enabled", c.name),
@@ -209,8 +225,8 @@ func (c *component) Reload() error {
 			}
 		}
 	}
-	c.loaded = true
 	c.SetEnabled(true)
+	c.loaded = true
 	return nil
 }
 

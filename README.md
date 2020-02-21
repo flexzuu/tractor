@@ -49,3 +49,5 @@ Tractor Studio will be running on `http://localhost:3000` but you want to open i
 path to a Tractor workspace. A development workspace is created for you at `local/workspace`
 which should show up in the Tractor systray menu as `dev`. Clicking `dev` in the menu will
 launch Studio in your browser opened to that workspace.
+
+Currently an upstream [bug(?)](https://github.com/eclipse-theia/theia/issues/7190#issuecomment-589236760) means you can only use Chrome.

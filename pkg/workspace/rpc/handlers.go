@@ -163,7 +163,6 @@ func (s *Service) RefreshObject() func(qrpc.Responder, *qrpc.Call) {
 			return
 		}
 		s.updateView()
-		fmt.Println("REFRESHED")
 		r.Return(nil)
 	}
 }
