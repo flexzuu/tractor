@@ -22,8 +22,8 @@ import (
 
 // Agent manages multiple workspaces in a directory (default: ~/.tractor).
 type Agent struct {
-	Path                 string `toml:"-"` // ~/.tractor
-	ConfigPath           string `toml:"-"` // ~/.tractor/config.toml
+	Path                 string // ~/.tractor
+	ConfigPath           string // ~/.tractor/config.toml
 	SocketPath           string // ~/.tractor/agent.sock
 	WorkspacesPath       string // ~/.tractor/workspaces
 	WorkspaceSocketsPath string // ~/.tractor/sockets
@@ -32,11 +32,11 @@ type Agent struct {
 	PreferredBrowser     string
 	DevMode              bool
 
-	Daemon  *daemon.Daemon   `toml:"-"`
-	Console *console.Service `toml:"-"`
-	Logger  logging.Logger   `toml:"-"`
+	Daemon  *daemon.Daemon
+	Console *console.Service
+	Logger  logging.Logger
 
-	WorkspacesChanged chan struct{} `toml:"-"`
+	WorkspacesChanged chan struct{}
 	workspaces        map[string]*Workspace
 	mu                sync.RWMutex
 }
