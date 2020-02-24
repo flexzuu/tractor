@@ -12,9 +12,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/BurntSushi/toml"
 	"github.com/fsnotify/fsnotify"
 	"github.com/manifold/tractor/pkg/agent/console"
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/logging/null"
@@ -76,10 +76,12 @@ func Open(path string, console *console.Service, devMode bool) (*Agent, error) {
 		a.Logger = &null.Logger{}
 	}
 
-	_, err = toml.DecodeFile(a.ConfigPath, &a)
-	if err != nil && !os.IsNotExist(err) {
+	cfg, err := config.ParseFile(a.ConfigPath)
+	if err != nil {
 		return nil, err
 	}
+
+	a.PreferredBrowser = cfg.Agent.PreferredBrowser
 
 	os.MkdirAll(a.WorkspacesPath, 0700)
 	os.MkdirAll(a.WorkspaceSocketsPath, 0700)
