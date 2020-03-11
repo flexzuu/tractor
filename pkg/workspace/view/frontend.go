@@ -2,7 +2,6 @@ package view
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"sync"
@@ -230,7 +229,7 @@ func exportField(o reflected.Value, field, path string, n manifold.Object) Field
 			Value: path,
 		}
 	default:
-		log.Println("TODO: unknown type:", o, field)
+		//log.Println("TODO: unknown type:", o, field)
 		return Field{
 			Name: field,
 			Path: fieldPath,

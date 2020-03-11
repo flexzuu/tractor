@@ -47,6 +47,7 @@ type simpleService struct {
 
 func (s *simpleService) Serve(ctx context.Context) {
 	s.Called(ctx)
+	time.Sleep(10 * time.Millisecond)
 	return
 }
 
@@ -77,7 +78,7 @@ func TestDaemon(t *testing.T) {
 	assert.Len(t, d.Terminators, 2)
 	assert.Len(t, d.Services, 3)
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Millisecond)
 	d.Run(ctx)
 
 	s1.AssertExpectations(t)
