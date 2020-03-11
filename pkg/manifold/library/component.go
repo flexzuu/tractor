@@ -305,10 +305,8 @@ func extractRefsSlice(obj manifold.Object, basePath string, v interface{}) (out 
 	if rv.Kind() != reflect.Slice {
 		return
 	}
-	fmt.Printf("SLICE: %#v\n", v)
 	for i := 0; i < rv.Len(); i++ {
 		field := rv.Index(i)
-		fmt.Printf("ELEM: %#v %s %s\n", field.Interface(), field.Type(), field.Type().Kind())
 		ft := field.Type()
 		fieldPath := path.Join(basePath, strconv.Itoa(i))
 		var subrefs []manifold.SnapshotRef

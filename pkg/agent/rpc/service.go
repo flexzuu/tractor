@@ -39,7 +39,7 @@ func (s *Service) Serve(ctx context.Context) {
 
 	//s.periodicStatus()
 
-	logging.Infof(s.Log, "rpc listening at unix://%s", s.Agent.SocketPath)
+	logging.Infof(s.Log, "agent listening at unix://%s", s.Agent.SocketPath)
 	if err := server.Serve(s.l, s.api); err != nil {
 		fmt.Println(err)
 	}

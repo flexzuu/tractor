@@ -78,7 +78,7 @@ func (s *Service) InitializeDaemon() (err error) {
 
 func (s *Service) Serve(ctx context.Context) {
 	server := &qrpc.Server{}
-	s.Log.Infof("[workspace] %s://%s", s.Protocol, s.ListenAddr)
+	s.Log.Infof("workspace listening at %s://%s", s.Protocol, s.ListenAddr)
 	if err := server.Serve(s.l, s.api); err != nil {
 		fmt.Println(err)
 	}

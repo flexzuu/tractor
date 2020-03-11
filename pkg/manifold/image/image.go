@@ -135,7 +135,6 @@ func (i *Image) Load() (manifold.Object, error) {
 		}
 		_, targetType, _ := src.GetField(ref.Path)
 		ptr := reflect.New(targetType)
-		fmt.Println(ref, targetType)
 		dst.ValueTo(ptr)
 		src.SetField(ref.Path, reflect.Indirect(ptr).Interface())
 	}
