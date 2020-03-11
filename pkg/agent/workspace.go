@@ -80,7 +80,7 @@ func OpenWorkspace(a *Agent, name string) (*Workspace, error) {
 	}
 	var consolePipe io.WriteCloser
 	if svc, ok := a.Logger.(*console.Service); ok && svc != nil {
-		consolePipe = svc.NewPipe(name)
+		consolePipe = svc.NewPipe("@" + name)
 	}
 	socketPath := filepath.Join(a.WorkspaceSocketsPath, fmt.Sprintf("%s.sock", name))
 	ws := &Workspace{
@@ -249,15 +249,15 @@ func (w *Workspace) Serve(ctx context.Context) {
 					continue
 				}
 
-				info(w.log, "detected change:", event.Path)
+				logging.Infof(w.log, "@%s: %s changed", w.Name, event.Path)
 
 				debounce(func() {
-					info(w.log, "recompiling workspace:", w.Name)
+					logging.Infof(w.log, "@%s: recompiling", w.Name)
 					if err := w.Recompile(); err != nil {
 						info(w.log, err)
 						return
 					}
-					info(w.log, "reloading workspace:", w.Name)
+					logging.Infof(w.log, "@%s: reloading", w.Name)
 					if err := w.daemon.Restart(); err != nil {
 						info(w.log, err)
 					}
@@ -280,7 +280,7 @@ func (w *Workspace) Serve(ctx context.Context) {
 }
 
 func (w *Workspace) Connect() (io.ReadCloser, error) {
-	info(w.log, "[workspace]", w.Name, "Connect()")
+	logging.Infof(w.log, "@%s: Connect()", w.Name)
 	var err error
 	if !subcmd.Running(w.daemon) {
 		err = w.daemon.Start()
@@ -292,13 +292,13 @@ func (w *Workspace) Connect() (io.ReadCloser, error) {
 // Start starts the workspace daemon. creates the symlink to the path if it does
 // not exist, using the path basename as the symlink name
 func (w *Workspace) Start() error {
-	info(w.log, "[workspace]", w.Name, "Start()")
+	logging.Infof(w.log, "@%s: Start()", w.Name)
 	return w.daemon.Restart()
 }
 
 // Stop stops the workspace daemon, deleting the unix socket file.
 func (w *Workspace) Stop() error {
-	info(w.log, "[workspace]", w.Name, "Stop()")
+	logging.Infof(w.log, "@%s: Stop()", w.Name)
 	if w.daemon != nil {
 		return w.daemon.Stop()
 	}
@@ -321,7 +321,7 @@ func (w *Workspace) setStatus(s WorkspaceStatus) {
 		w.statMu.Unlock()
 		return
 	}
-	info(w.log, "[workspace]", w.Name, "state:", w.status, "=>", s)
+	logging.Infof(w.log, "@%s: %s => %s", w.Name, w.status, s)
 
 	w.status = s
 	w.obsMu.Lock()

@@ -190,7 +190,8 @@ func (a *Agent) Workspaces() ([]*Workspace, error) {
 
 // Shutdown shuts all workspaces down and cleans up socket files.
 func (a *Agent) Shutdown() {
-	info(a.Logger, "[server] shutting down")
+	logging.Infof(a.Logger, "shutting down")
+	// info(a.Logger, "[server] shutting down")
 	os.RemoveAll(a.SocketPath)
 	for _, ws := range a.workspaces {
 		ws.Stop()

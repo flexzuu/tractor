@@ -7,7 +7,8 @@ import (
 	"sync"
 
 	"github.com/manifold/tractor/pkg/misc/logging"
-	"github.com/manifold/tractor/pkg/misc/logging/std"
+	zapper "github.com/manifold/tractor/pkg/misc/logging/zap"
+	zapapi "go.uber.org/zap"
 )
 
 // Output lets you redirect the output the console is set up with.
@@ -28,9 +29,12 @@ type Service struct {
 func New() *Service {
 	s := &Service{}
 	s.logreader, s.logwriter = io.Pipe()
-	s.Logger = std.NewLogger("", s.logwriter)
+	s.Logger = zapper.NewLogger(s.logwriter,
+		zapapi.AddCallerSkip(1),
+	)
 	s.console = &LineWriter{
-		Output: Output,
+		Output:  Output,
+		Padding: 6,
 	}
 	go s.console.LineReader("agent", -1, s.logreader, false)
 	return s

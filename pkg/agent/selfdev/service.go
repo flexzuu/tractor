@@ -26,7 +26,7 @@ const WatchInterval = time.Millisecond * 50
 type Service struct {
 	Agent   *agent.Agent
 	Daemon  *daemon.Daemon
-	Logger  logging.DebugLogger
+	Logger  logging.Logger
 	Console *console.Service
 
 	watcher *watcher.Watcher
@@ -34,7 +34,7 @@ type Service struct {
 }
 
 func (s *Service) InitializeDaemon() (err error) {
-	s.output = s.Console.NewPipe("dev")
+	s.output = s.Console.NewPipe("selfdev")
 	s.watcher = watcher.New()
 	s.watcher.SetMaxEvents(1)
 	s.watcher.IgnoreHiddenFiles(true)
@@ -57,6 +57,7 @@ func (s *Service) InitializeDaemon() (err error) {
 	s.watcher.AddRecursive("./pkg")
 	s.watcher.AddRecursive("./studio")
 
+	theiaOut := s.Console.NewPipe("theia")
 	shellBuild := &cmdService{
 		subcmd.New("yarn", "run", "theia", "build", "--watch", "--mode", "development"),
 	}
@@ -64,18 +65,19 @@ func (s *Service) InitializeDaemon() (err error) {
 		cmd.Dir = "./studio/shell"
 		// theia watch barfs a lot of useless warnings with every change
 		//cmd.Stdout = s.output
-		cmd.Stderr = s.output
+		cmd.Stderr = theiaOut
 		return nil
 	}
 	s.Daemon.AddServices(shellBuild)
 
+	studioOut := s.Console.NewPipe("studio")
 	shellRun := &cmdService{
 		subcmd.New("yarn", "run", "theia", "start", "--log-level", "warn", "--plugins", "local-dir:../plugins/"),
 	}
 	shellRun.Setup = func(cmd *exec.Cmd) error {
 		cmd.Dir = "./studio/shell"
-		cmd.Stdout = s.output
-		cmd.Stderr = s.output
+		cmd.Stdout = studioOut
+		cmd.Stderr = studioOut
 		return nil
 	}
 	s.Daemon.AddServices(shellRun)
@@ -91,7 +93,7 @@ func (s *Service) TerminateDaemon() error {
 func (s *Service) Serve(ctx context.Context) {
 	go s.handleLoop(ctx)
 	if err := s.watcher.Start(WatchInterval); err != nil {
-		s.Logger.Debug(err)
+		logging.Error(s.Logger, err)
 	}
 }
 func (s *Service) handleLoop(ctx context.Context) {
@@ -110,7 +112,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 
 			if filepath.Ext(event.Path) == ".ts" || filepath.Ext(event.Path) == ".tsx" {
 				// debounce(func() {
-				s.Logger.Debug("ts file changed, compiling...")
+				logging.Info(s.Logger, "ts file changed, compiling...")
 				for _, plugin := range []string{"inspector", "moduleview", "tableview"} {
 					if strings.Contains(event.Path, "/studio/plugins/"+plugin) {
 						go func() {
@@ -119,7 +121,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 							cmd.Stdout = s.output
 							cmd.Stderr = s.output
 							cmd.Run()
-							s.Logger.Debug("finished")
+							logging.Info(s.Logger, "finished")
 						}()
 					}
 				}
@@ -130,7 +132,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 						cmd.Stdout = s.output
 						cmd.Stderr = s.output
 						cmd.Run()
-						s.Logger.Debug("finished")
+						logging.Info(s.Logger, "finished")
 					}()
 				}
 				// })
@@ -138,7 +140,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 			}
 
 			if filepath.Ext(event.Path) == ".go" {
-				s.Logger.Debug("go file changed, testing/compiling...")
+				logging.Info(s.Logger, "go file changed, testing/compiling...")
 				errs := make(chan error)
 				go func() {
 					cmd := exec.Command("go", "build", "-o", "./local/bin/tractor.tmp", "./cmd/tractor")
@@ -147,7 +149,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						s.Logger.Debug("ERROR")
+						logging.Error(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -157,7 +159,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						s.Logger.Debug("ERROR")
+						logging.Error(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -167,7 +169,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						s.Logger.Debug("ERROR")
+						logging.Error(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -202,7 +204,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 			if !ok {
 				return
 			}
-			s.Logger.Debug("error:", err)
+			logging.Error(s.Logger, err)
 		case <-s.watcher.Closed:
 			return
 		}
