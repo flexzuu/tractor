@@ -3,12 +3,13 @@ package daemon
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/registry"
@@ -122,9 +123,17 @@ func (d *Daemon) Run(ctx context.Context) error {
 	var errs []error
 	select {
 	case <-finished:
-		errs = <-d.termErrs
+		select {
+		case errs = <-d.termErrs:
+		default:
+		}
 	case errs = <-d.termErrs:
-		fmt.Println("warning: unfinished services")
+		select {
+		case <-finished:
+		case <-time.After(1 * time.Second):
+			// TODO: show/track what servies
+			log.Println("warning: unfinished services")
+		}
 	}
 
 	if d.OnFinished != nil {
