@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"path"
+	"strconv"
 
+	"github.com/hashicorp/mdns"
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/workspace/state"
 	"github.com/manifold/tractor/pkg/workspace/view"
+	"github.com/miekg/dns"
 )
 
 type Service struct {
-	Protocol   string
+	// Protocol   string
 	ListenAddr string
 
 	Log   logging.Logger
@@ -46,7 +51,7 @@ func (s *Service) updateView() {
 }
 
 func (s *Service) InitializeDaemon() (err error) {
-	if s.l, err = muxListenTo(s.Protocol, s.ListenAddr); err != nil {
+	if s.l, err = mux.ListenWebsocket(s.ListenAddr); err != nil {
 		return err
 	}
 
@@ -76,24 +81,32 @@ func (s *Service) InitializeDaemon() (err error) {
 	return nil
 }
 
+func (s *Service) Records(q dns.Question) []dns.RR {
+	_, p, _ := net.SplitHostPort(s.ListenAddr)
+	port, _ := strconv.Atoi(p)
+	wd, _ := os.Getwd()
+	zone, _ := mdns.NewMDNSService(path.Base(wd), "_tractor._tcp", "", "", port, nil, []string{wd})
+	return zone.Records(q)
+}
+
 func (s *Service) Serve(ctx context.Context) {
 	server := &qrpc.Server{}
-	s.Log.Infof("workspace listening at %s://%s", s.Protocol, s.ListenAddr)
+	s.Log.Infof("daemon listening at %s", s.ListenAddr)
 	if err := server.Serve(s.l, s.api); err != nil {
 		fmt.Println(err)
 	}
-	if s.Protocol == "unix" {
-		os.Remove(s.ListenAddr)
-	}
+	// if s.Protocol == "unix" {
+	// 	os.Remove(s.ListenAddr)
+	// }
 }
 
 func (s *Service) TerminateDaemon() error {
 	for client, _ := range s.clients {
 		client.Call("shutdown", nil, nil)
 	}
-	if s.Protocol == "unix" {
-		os.Remove(s.ListenAddr)
-	}
+	// if s.Protocol == "unix" {
+	// 	os.Remove(s.ListenAddr)
+	// }
 	return nil
 }
 

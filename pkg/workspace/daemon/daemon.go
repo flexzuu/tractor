@@ -9,6 +9,7 @@ import (
 	"github.com/manifold/tractor/pkg/manifold"
 	"github.com/manifold/tractor/pkg/manifold/object"
 	"github.com/manifold/tractor/pkg/misc/daemon"
+	"github.com/manifold/tractor/pkg/misc/mdns"
 	"github.com/manifold/tractor/pkg/stdlib"
 	"github.com/manifold/tractor/pkg/workspace/rpc"
 	"github.com/manifold/tractor/pkg/workspace/state"
@@ -17,8 +18,8 @@ import (
 )
 
 var (
-	addr  = flag.String("addr", "localhost:4243", "server listener address")
-	proto = flag.String("proto", "websocket", "server listener protocol")
+	addr = flag.String("addr", "localhost:4243", "server listener address")
+	// proto = flag.String("proto", "websocket", "server listener protocol")
 )
 
 func init() {
@@ -30,7 +31,7 @@ func Run() {
 	logger, undo := zapper.NewRedirectedLogger(os.Stdout)
 	defer undo()
 	rpcSvc := &rpc.Service{
-		Protocol:   *proto,
+		// Protocol:   *proto,
 		ListenAddr: *addr,
 		Log:        logger,
 	}
@@ -42,6 +43,9 @@ func Run() {
 			Log: logger,
 		},
 		rpcSvc,
+		&mdns.Service{
+			Log: logger,
+		},
 	}...)
 	fatal(dm.Run(context.Background()))
 }

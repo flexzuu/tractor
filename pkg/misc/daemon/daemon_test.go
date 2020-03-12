@@ -78,7 +78,8 @@ func TestDaemon(t *testing.T) {
 	assert.Len(t, d.Terminators, 2)
 	assert.Len(t, d.Services, 3)
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer cancel()
 	d.Run(ctx)
 
 	s1.AssertExpectations(t)

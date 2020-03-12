@@ -12,6 +12,7 @@ import { CompositeTreeNode } from '@theia/core/lib/browser/tree';
 import { Widget } from '@theia/core/lib/browser/widgets';
 import { WidgetManager } from '@theia/core/lib/browser';
 import { MessageService, ILogger } from '@theia/core';
+import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { SingleTextInputDialog } from '@theia/core/lib/browser/dialogs';
 
 export namespace TractorCommands {
@@ -73,6 +74,9 @@ export namespace TractorContextMenu {
 @injectable()
 export class TractorContribution extends AbstractViewContribution<TractorTreeWidget> implements FrontendApplicationContribution, TabBarToolbarContribution {
 
+    @inject(WorkspaceService)
+    protected readonly workspace: WorkspaceService;
+
     @inject(TractorService)
     protected readonly tractor: TractorService;
     
@@ -106,7 +110,6 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
     }
 
     onStart(app: FrontendApplication): void {
-        this.tractor.connectAgent();
         this.widgets.onDidCreateWidget((e) => {
             if (e.widget.constructor.name === "WebviewWidget") {
                 e.widget.title.iconClass = "fa fas fa-clipboard-list";

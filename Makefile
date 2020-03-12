@@ -54,7 +54,7 @@ local/workspace:
 	rm ~/.tractor/workspaces/dev || true
 	ln -fs $(PWD)/local/workspace ~/.tractor/workspaces/dev
 
-studio: studio/node_modules studio/extension/lib studio/shell/src-gen
+studio: studio/node_modules studio/extension/lib studio/shell/src-gen studio/plugins/*/lib
 
 studio/node_modules:
 	cd studio && yarn install
