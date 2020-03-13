@@ -14,6 +14,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/manifold/tractor/pkg/agent/console"
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/logging/null"
@@ -21,13 +22,8 @@ import (
 
 // Agent manages multiple workspaces in a directory (default: ~/.tractor).
 type Agent struct {
-	Path                 string // ~/.tractor
-	SocketPath           string // ~/.tractor/agent.sock
-	WorkspacesPath       string // ~/.tractor/workspaces
-	WorkspaceSocketsPath string // ~/.tractor/sockets
-	WorkspaceBinPath     string // ~/.tractor/bin
-	GoBin                string
-	DevMode              bool
+	Path    string // ~/.tractor
+	DevMode bool
 
 	Daemon  *daemon.Daemon
 	Console *console.Service
@@ -36,22 +32,17 @@ type Agent struct {
 	WorkspacesChanged chan struct{}
 	workspaces        map[string]*Workspace
 	mu                sync.RWMutex
+	config.Agent
 }
 
 // Open returns a new agent for the given path. If the given path is empty, a
 // default of ~/.tractor will be used.
 func Open(path string, console *console.Service, devMode bool) (*Agent, error) {
-	bin, err := exec.LookPath("go")
-	if err != nil {
-		return nil, err
-	}
-
 	a := &Agent{
 		DevMode:           devMode,
 		Console:           console,
 		Logger:            console,
 		Path:              path,
-		GoBin:             bin,
 		workspaces:        make(map[string]*Workspace),
 		WorkspacesChanged: make(chan struct{}),
 	}
@@ -64,13 +55,28 @@ func Open(path string, console *console.Service, devMode bool) (*Agent, error) {
 		a.Path = p
 	}
 
-	a.SocketPath = filepath.Join(a.Path, "agent.sock")
-	a.WorkspacesPath = filepath.Join(a.Path, "workspaces")
-	a.WorkspaceBinPath = filepath.Join(a.Path, "bin")
-	a.WorkspaceSocketsPath = filepath.Join(a.Path, "sockets")
+	bin, err := exec.LookPath("go")
+	if err != nil {
+		return nil, err
+	}
+
 	if a.Logger == nil {
 		a.Logger = &null.Logger{}
 	}
+
+	cfg := &config.Config{Agent: config.Agent{
+		GoBin:                bin,
+		SocketPath:           filepath.Join(a.Path, "agent.sock"),
+		WorkspacesPath:       filepath.Join(a.Path, "workspaces"),
+		WorkspaceBinPath:     filepath.Join(a.Path, "bin"),
+		WorkspaceSocketsPath: filepath.Join(a.Path, "sockets"),
+	}}
+	err = config.ParseFile(filepath.Join(a.Path, "config.toml"), cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	a.Agent = cfg.Agent
 
 	os.MkdirAll(a.WorkspacesPath, 0700)
 	os.MkdirAll(a.WorkspaceSocketsPath, 0700)
