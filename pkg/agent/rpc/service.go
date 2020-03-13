@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
@@ -28,7 +26,6 @@ func (s *Service) InitializeDaemon() (err error) {
 	}
 
 	s.api = qrpc.NewAPI()
-	s.api.HandleFunc("connect", s.Connect())
 	s.api.HandleFunc("start", s.Start())
 	s.api.HandleFunc("stop", s.Stop())
 	return nil
@@ -36,8 +33,6 @@ func (s *Service) InitializeDaemon() (err error) {
 
 func (s *Service) Serve(ctx context.Context) {
 	server := &qrpc.Server{}
-
-	//s.periodicStatus()
 
 	logging.Infof(s.Log, "agent listening at unix://%s", s.Agent.SocketPath)
 	if err := server.Serve(s.l, s.api); err != nil {
@@ -50,38 +45,6 @@ func (s *Service) TerminateDaemon() error {
 	s.Agent.Shutdown()
 	os.Remove(s.Agent.SocketPath)
 	return nil
-}
-
-func (s *Service) periodicStatus() {
-	go func() {
-		var lastMsg string
-		for {
-			time.Sleep(time.Second * 3)
-			msg, err := wsStatus(s.Agent)
-			if err != nil {
-				s.Log.Info("[workspaces]", err)
-			}
-			if lastMsg != msg && len(msg) > 0 {
-				s.Log.Info("[workspaces]", msg)
-			}
-			lastMsg = msg
-		}
-	}()
-}
-
-func wsStatus(a *agent.Agent) (string, error) {
-	workspaces, err := a.Workspaces()
-	if err != nil || len(workspaces) == 0 {
-		return "", err
-	}
-
-	pairs := make([]string, len(workspaces))
-	for i, ws := range workspaces {
-		p, w := ws.BufferStatus()
-		pairs[i] = fmt.Sprintf("%s=%s (%d pipe(s), %d written)",
-			ws.Name, ws.Status(), p, w)
-	}
-	return strings.Join(pairs, ", "), nil
 }
 
 func findWorkspace(a *agent.Agent, call *qrpc.Call) (*agent.Workspace, error) {

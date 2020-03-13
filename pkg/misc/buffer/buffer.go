@@ -78,6 +78,12 @@ func (b *Buffer) Write(by []byte) (int, error) {
 	return n, err
 }
 
+func (b *Buffer) Bytes() []byte {
+	b.muBuf.Lock()
+	defer b.muBuf.Unlock()
+	return b.buf.Bytes()
+}
+
 // Pipe returns a new pipe reader that reads data from this buffer. Closing the
 // pipe reader will release it from the buffer too.
 func (b *Buffer) Pipe() io.ReadCloser {

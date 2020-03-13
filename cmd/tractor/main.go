@@ -32,6 +32,7 @@ func init() {
 	rootCmd.AddCommand(agentCmd())
 	rootCmd.AddCommand(shellCmd())
 	rootCmd.AddCommand(browseCmd())
+	rootCmd.AddCommand(runCmd())
 
 	ct, cancelFunc := context.WithCancel(context.Background())
 	sigQuit = ct

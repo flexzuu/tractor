@@ -16,6 +16,7 @@ import (
 	"github.com/manifold/tractor/pkg/agent/console"
 	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
+	"github.com/manifold/tractor/pkg/misc/debouncer"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/logging/null"
 )
@@ -197,7 +198,6 @@ func (a *Agent) Workspaces() ([]*Workspace, error) {
 // Shutdown shuts all workspaces down and cleans up socket files.
 func (a *Agent) Shutdown() {
 	logging.Infof(a.Logger, "shutting down")
-	// info(a.Logger, "[server] shutting down")
 	os.RemoveAll(a.SocketPath)
 	for _, ws := range a.workspaces {
 		ws.Stop()
@@ -211,7 +211,7 @@ func (a *Agent) Watch(ctx context.Context) {
 		return
 	}
 	watcher.Add(a.WorkspacesPath)
-	debounce := Debounce(20 * time.Millisecond)
+	debounce := debouncer.New(20 * time.Millisecond)
 	for {
 		select {
 		case <-ctx.Done():
@@ -286,33 +286,4 @@ func logErr(l logging.Logger, args ...interface{}) {
 
 func isNilValue(i interface{}) bool {
 	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
-}
-
-// New returns a debounced function that takes another functions as its argument.
-// This function will be called when the debounced function stops being called
-// for the given duration.
-// The debounced function can be invoked with different functions, if needed,
-// the last one will win.
-func Debounce(after time.Duration) func(f func()) {
-	d := &debouncer{after: after}
-
-	return func(f func()) {
-		d.add(f)
-	}
-}
-
-type debouncer struct {
-	mu    sync.Mutex
-	after time.Duration
-	timer *time.Timer
-}
-
-func (d *debouncer) add(f func()) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.timer != nil {
-		d.timer.Stop()
-	}
-	d.timer = time.AfterFunc(d.after, f)
 }

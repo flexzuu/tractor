@@ -2,42 +2,9 @@ package rpc
 
 import (
 	"fmt"
-	"io"
 
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 )
-
-func (s *Service) Connect() func(qrpc.Responder, *qrpc.Call) {
-	return func(r qrpc.Responder, c *qrpc.Call) {
-		ws, err := findWorkspace(s.Agent, c)
-		if err != nil {
-			r.Return(err)
-			return
-		}
-
-		out, err := ws.Connect()
-		if err != nil {
-			r.Return(err)
-			return
-		}
-
-		ch, err := r.Hijack(ws.SocketPath)
-		if err != nil {
-			out.Close()
-			r.Return(err)
-			return
-		}
-
-		_, err = io.Copy(ch, out)
-		ch.Close()
-		out.Close()
-
-		if err == io.ErrClosedPipe {
-			r.Return(err)
-			return
-		}
-	}
-}
 
 func (s *Service) Start() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {

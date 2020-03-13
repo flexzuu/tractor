@@ -74,7 +74,8 @@ type Subcmd struct {
 	lastStatus int
 	restarts   int
 
-	waitCh chan error
+	waitCh   chan error
+	waitCond *sync.Cond
 
 	cbMu      sync.Mutex
 	runMu     sync.Mutex
@@ -90,6 +91,7 @@ func New(name string, arg ...string) *Subcmd {
 		Cmd:         exec.Command(name, arg...),
 		maxRestarts: -1,
 		status:      StatusStopped,
+		waitCond:    sync.NewCond(&sync.Mutex{}),
 	}
 }
 
@@ -153,7 +155,7 @@ func (sc *Subcmd) terminate() error {
 	sc.pidMu.Unlock()
 	logging.Debug(sc.Log, "sending SIGINT to PID ", pid)
 	syscall.Kill(-pid, syscall.SIGINT)
-	timeout := time.After(3 * time.Second) // TODO: configurable
+	timeout := time.After(2 * time.Second) // TODO: configurable
 	for {
 		select {
 		case <-timeout:
@@ -171,14 +173,26 @@ func (sc *Subcmd) terminate() error {
 }
 
 func (sc *Subcmd) Wait() error {
-	sc.waitMu.Lock()
-	if sc.waitCh != nil {
-		sc.waitMu.Unlock()
-		return ErrWaiting
-	}
-	sc.waitCh = make(chan error)
-	sc.waitMu.Unlock()
-	return <-sc.waitCh
+	// Using a condition seems like the right way to do this
+	// however, it has not been fully tested. Old implementation
+	// below in comments -progrium
+	sc.waitCond.L.Lock()
+	sc.waitCond.Wait()
+	sc.waitCond.L.Unlock()
+
+	sc.lastMu.Lock()
+	err := sc.lastErr
+	sc.lastMu.Unlock()
+
+	return err
+	// sc.waitMu.Lock()
+	// if sc.waitCh != nil {
+	// 	sc.waitMu.Unlock()
+	// 	return ErrWaiting
+	// }
+	// sc.waitCh = make(chan error)
+	// sc.waitMu.Unlock()
+	// return <-sc.waitCh
 }
 
 func (sc *Subcmd) setStatus(s Status) {
@@ -264,12 +278,15 @@ func (sc *Subcmd) start() (err error) {
 			sc.setStatus(StatusExited)
 		}
 
-		sc.waitMu.Lock()
-		if sc.waitCh != nil {
-			sc.waitCh <- sc.lastErr
-			sc.waitCh = nil
-		}
-		sc.waitMu.Unlock()
+		sc.waitCond.L.Lock()
+		sc.waitCond.Broadcast()
+		sc.waitCond.L.Unlock()
+		// sc.waitMu.Lock()
+		// if sc.waitCh != nil {
+		// 	sc.waitCh <- sc.lastErr
+		// 	sc.waitCh = nil
+		// }
+		// sc.waitMu.Unlock()
 
 		if sc.lastErr != nil && sc.lastStatus != -1 { // was not SIGKILLED
 			sc.runMu.Unlock()

@@ -12,6 +12,7 @@ import (
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/subcmd"
+	"github.com/manifold/tractor/pkg/workspace/supervisor"
 	"github.com/skratchdot/open-golang/open"
 )
 
@@ -75,11 +76,12 @@ func (s *Service) Serve(ctx context.Context) {
 				Icon:    ws.Status().String(),
 				Enabled: true,
 			})
-			ws.Observe(func(ws *agent.Workspace, status agent.WorkspaceStatus) {
+			ws.Observe(func(svr *supervisor.Supervisor, status supervisor.Status) {
+				name := ws.Name
 				s.send(Message{
 					Type: ItemUpdate,
 					Item: &MenuItem{
-						Title:   ws.Name,
+						Title:   name,
 						Tooltip: "Open workspace",
 						Icon:    status.String(),
 						Enabled: true,

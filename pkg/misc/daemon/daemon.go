@@ -130,7 +130,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	case errs = <-d.termErrs:
 		select {
 		case <-finished:
-		case <-time.After(1 * time.Second):
+		case <-time.After(3 * time.Second):
 			// TODO: show/track what servies
 			log.Println("warning: unfinished services")
 		}

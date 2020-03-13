@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/mdns"
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
+	"github.com/manifold/tractor/pkg/misc/buffer"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/workspace/state"
 	"github.com/manifold/tractor/pkg/workspace/view"
@@ -22,8 +23,9 @@ type Service struct {
 	// Protocol   string
 	ListenAddr string
 
-	Log   logging.Logger
-	State *state.Service
+	Output *buffer.Buffer
+	Log    logging.Logger
+	State  *state.Service
 
 	viewState *view.State
 	clients   map[qrpc.Caller]string
@@ -59,6 +61,7 @@ func (s *Service) InitializeDaemon() (err error) {
 	s.viewState = view.New(s.State.Root)
 
 	s.api = qrpc.NewAPI()
+	s.api.HandleFunc("console", s.Console())
 	s.api.HandleFunc("reload", s.Reload())
 	s.api.HandleFunc("refreshObject", s.RefreshObject())
 	s.api.HandleFunc("repl", s.Repl())

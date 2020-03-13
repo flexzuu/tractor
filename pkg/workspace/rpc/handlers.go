@@ -55,6 +55,28 @@ type MoveNodeParams struct {
 	Index int
 }
 
+func (s *Service) Console() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		console := s.Output.Pipe()
+
+		ch, err := r.Hijack(nil)
+		if err != nil {
+			console.Close()
+			r.Return(err)
+			return
+		}
+
+		_, err = io.Copy(ch, console)
+		ch.Close()
+		console.Close()
+
+		if err == io.ErrClosedPipe {
+			r.Return(err)
+			return
+		}
+	}
+}
+
 func (s *Service) Reload() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {
 		s.updateView()
