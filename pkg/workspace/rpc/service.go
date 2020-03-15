@@ -85,7 +85,7 @@ func (s *Service) InitializeDaemon() (err error) {
 }
 
 func (s *Service) Records(q dns.Question) []dns.RR {
-	_, p, _ := net.SplitHostPort(s.ListenAddr)
+	_, p, _ := net.SplitHostPort(s.l.Addr().String())
 	port, _ := strconv.Atoi(p)
 	wd, _ := os.Getwd()
 	zone, _ := mdns.NewMDNSService(path.Base(wd), "_tractor._tcp", "", "", port, nil, []string{wd})
@@ -94,7 +94,7 @@ func (s *Service) Records(q dns.Question) []dns.RR {
 
 func (s *Service) Serve(ctx context.Context) {
 	server := &qrpc.Server{}
-	s.Log.Infof("daemon listening at %s", s.ListenAddr)
+	s.Log.Infof("daemon listening at %s", s.l.Addr().String())
 	if err := server.Serve(s.l, s.api); err != nil {
 		fmt.Println(err)
 	}

@@ -9,11 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/manifold/tractor/pkg/agent"
 	"github.com/manifold/tractor/pkg/agent/console"
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
@@ -24,7 +22,6 @@ import (
 const WatchInterval = time.Millisecond * 50
 
 type Service struct {
-	Agent   *agent.Agent
 	Daemon  *daemon.Daemon
 	Logger  logging.Logger
 	Console *console.Service
@@ -149,7 +146,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						logging.Error(s.Logger, "ERROR")
+						logging.Info(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -159,7 +156,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						logging.Error(s.Logger, "ERROR")
+						logging.Info(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -169,7 +166,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 					err := cmd.Run()
 					errs <- err
 					if exitStatus(err) > 0 {
-						logging.Error(s.Logger, "ERROR")
+						logging.Info(s.Logger, "ERROR")
 					}
 				}()
 				go func() {
@@ -242,35 +239,6 @@ func checksumMatch(bin1, bin2 string) bool {
 	go checksum(bin1, chk1)
 	go checksum(bin2, chk2)
 	return bytes.Equal(<-chk1, <-chk2)
-}
-
-// New returns a debounced function that takes another functions as its argument.
-// This function will be called when the debounced function stops being called
-// for the given duration.
-// The debounced function can be invoked with different functions, if needed,
-// the last one will win.
-func Debounce(after time.Duration) func(f func()) {
-	d := &debouncer{after: after}
-
-	return func(f func()) {
-		d.add(f)
-	}
-}
-
-type debouncer struct {
-	mu    sync.Mutex
-	after time.Duration
-	timer *time.Timer
-}
-
-func (d *debouncer) add(f func()) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.timer != nil {
-		d.timer.Stop()
-	}
-	d.timer = time.AfterFunc(d.after, f)
 }
 
 type cmdService struct {

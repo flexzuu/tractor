@@ -10,6 +10,7 @@ import (
 	"github.com/c-bata/go-prompt"
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
+	"github.com/manifold/tractor/pkg/agent"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,10 @@ func shellCmd() *cobra.Command {
 }
 
 func workspaceAddr(dir string) string {
-	ag := openAgent()
+	ag, err := agent.New(tractorUserPath, nil, false)
+	if err != nil {
+		fatal(err)
+	}
 	sess, err := mux.DialUnix(ag.SocketPath)
 	if err != nil {
 		log.Fatal(err)

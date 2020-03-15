@@ -8,7 +8,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/manifold/tractor/pkg/agent"
+	"github.com/manifold/tractor/pkg/agent/workspace"
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/subcmd"
@@ -17,7 +18,8 @@ import (
 )
 
 type Service struct {
-	Agent  *agent.Agent
+	Config *config.Config
+	Agent  agent
 	Logger logging.DebugLogger
 	Daemon *daemon.Daemon
 
@@ -27,18 +29,12 @@ type Service struct {
 	inbox  chan Message
 }
 
-func (s *Service) InitializeDaemon() (err error) {
-	go func() {
-		for range s.Agent.WorkspacesChanged {
-			if s.subcmd != nil {
-				s.subcmd.Restart()
-			}
-		}
-	}()
-	return s.start()
+// only dep on agent, avoids dep cycle
+type agent interface {
+	Workspaces() []*workspace.Entry
 }
 
-func (s *Service) start() (err error) {
+func (s *Service) InitializeDaemon() (err error) {
 	s.subcmd = subcmd.New(os.Args[0], "--", "systray")
 	s.subcmd.Started = make(chan *exec.Cmd)
 	s.subcmd.Setup = func(cmd *exec.Cmd) error {
@@ -58,26 +54,27 @@ func (s *Service) start() (err error) {
 	return s.subcmd.Start()
 }
 
+func (s *Service) Restart() error {
+	return s.subcmd.Restart()
+}
+
 func (s *Service) Serve(ctx context.Context) {
 	for range s.subcmd.Started {
 		s.inbox = make(chan Message)
 		go s.receiveMessages()
 
-		workspaces, err := s.Agent.Workspaces()
-		if err != nil {
-			panic(err)
-		}
+		workspaces := s.Agent.Workspaces()
 
 		var items []MenuItem
 		for idx, ws := range workspaces {
 			items = append(items, MenuItem{
-				Title:   ws.Name,
+				Title:   ws.Name(),
 				Tooltip: "Open workspace",
 				Icon:    ws.Status().String(),
 				Enabled: true,
 			})
 			ws.Observe(func(svr *supervisor.Supervisor, status supervisor.Status) {
-				name := ws.Name
+				name := ws.Name()
 				s.send(Message{
 					Type: ItemUpdate,
 					Item: &MenuItem{
@@ -114,11 +111,11 @@ func (s *Service) Serve(ctx context.Context) {
 					break
 				}
 				for _, ws := range workspaces {
-					if ws.Name == msg.Item.Title {
-						if len(s.Agent.PreferredBrowser) > 0 {
-							open.StartWith("http://localhost:3000/#"+ws.TargetPath, s.Agent.PreferredBrowser)
+					if ws.Name() == msg.Item.Title {
+						if s.Config.BrowserPref != "" {
+							open.StartWith("http://localhost:3000/#"+ws.Path(), s.Config.BrowserPref)
 						} else {
-							open.Start("http://localhost:3000/#" + ws.TargetPath)
+							open.Start("http://localhost:3000/#" + ws.Path())
 						}
 					}
 				}

@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	addr = flag.String("addr", "localhost:4243", "server listener address")
+	addr = flag.String("addr", "localhost:0", "server listener address")
 	// proto = flag.String("proto", "websocket", "server listener protocol")
 )
 

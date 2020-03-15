@@ -12,7 +12,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/daviddengcn/go-colortext v0.0.0-20180409174941-186a3d44e920
 	github.com/dustin/go-jsonpointer v0.0.0
-	github.com/fsnotify/fsnotify v1.4.7
 	github.com/getlantern/systray v0.0.0-20191210013027-82c477f5e254
 	github.com/getlantern/uuid v1.2.0 // indirect
 	github.com/gliderlabs/com v0.1.1-0.20191023181249-02615ad445ac // indirect

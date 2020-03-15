@@ -14,7 +14,7 @@ import (
 
 	"github.com/manifold/tractor/pkg/data/icons"
 	"github.com/manifold/tractor/pkg/misc/debouncer"
-	"github.com/manifold/tractor/pkg/misc/logging"
+	L "github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/subcmd"
 	"github.com/radovskyb/watcher"
 )
@@ -66,7 +66,7 @@ func watcherFilter(info os.FileInfo, fullPath string) error {
 // roles: manage process, alert observers, watch for changes to recompile and restart process
 type Supervisor struct {
 	Output     io.WriteCloser
-	Log        logging.Logger
+	Log        L.Logger
 	DaemonArgs []string
 	DaemonBin  string // absolute path to compiled binary (~/.tractor/bin/{name})
 	GoBin      string
@@ -96,9 +96,17 @@ func New(path string, name string, output io.WriteCloser) *Supervisor {
 		status:     StatusPartially,
 		Output:     output,
 		GoBin:      "go",
-		DaemonBin:  name,
+		DaemonBin:  filepath.Join(path, name),
 		DaemonArgs: []string{},
 	}
+}
+
+func (s *Supervisor) Path() string {
+	return s.path
+}
+
+func (s *Supervisor) Name() string {
+	return s.name
 }
 
 func (s *Supervisor) Status() Status {
@@ -165,7 +173,9 @@ func (s *Supervisor) StartDaemon() error {
 }
 
 func (s *Supervisor) Serve(ctx context.Context) {
-	s.StartDaemon()
+	if err := s.StartDaemon(); err != nil {
+		panic(err)
+	}
 
 	s.watcher = watcher.New()
 	s.watcher.IgnoreHiddenFiles(true)
@@ -189,7 +199,9 @@ func (s *Supervisor) handleWatcher(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			if err := s.Daemon.Stop(); err != nil {
-				s.Log.Error(err)
+				if err != subcmd.ErrNotRunning {
+					s.Log.Error(err)
+				}
 			}
 			s.watcher.Close()
 			return
@@ -237,7 +249,7 @@ func (s *Supervisor) setStatus(status Status) {
 		s.statMu.Unlock()
 		return
 	}
-	s.Log.Infof("@%s: %s => %s", s.name, s.status, status)
+	L.Infof(s.Log, "@%s: %s => %s", s.name, s.status, status)
 
 	s.status = status
 	s.obsMu.Lock()

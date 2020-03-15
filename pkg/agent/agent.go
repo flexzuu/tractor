@@ -2,288 +2,251 @@ package agent
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
-	"os/user"
-	"path/filepath"
+	"strings"
 	"sync"
 	"time"
-	"unsafe"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/hashicorp/mdns"
 	"github.com/manifold/tractor/pkg/agent/console"
+	"github.com/manifold/tractor/pkg/agent/rpc"
+	"github.com/manifold/tractor/pkg/agent/selfdev"
+	"github.com/manifold/tractor/pkg/agent/systray"
+	"github.com/manifold/tractor/pkg/agent/workspace"
 	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
-	"github.com/manifold/tractor/pkg/misc/debouncer"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/logging/null"
+	"github.com/manifold/tractor/pkg/workspace/supervisor"
 )
 
 // Agent manages multiple workspaces in a directory (default: ~/.tractor).
 type Agent struct {
-	Path    string // ~/.tractor
-	DevMode bool
+	Config     *config.Config
+	DevMode    bool
+	SocketPath string
 
 	Daemon  *daemon.Daemon
+	Systray *systray.Service
 	Console *console.Service
 	Logger  logging.Logger
 
-	WorkspacesChanged chan struct{}
-	workspaces        map[string]*Workspace
-	mu                sync.RWMutex
-	config.Agent
+	workspaces []*workspace.Entry
+
+	mu sync.RWMutex
 }
 
-// Open returns a new agent for the given path. If the given path is empty, a
+// New returns a new agent for the given path. If the given path is empty, a
 // default of ~/.tractor will be used.
-func Open(path string, console *console.Service, devMode bool) (*Agent, error) {
-	a := &Agent{
-		DevMode:           devMode,
-		Console:           console,
-		Logger:            console,
-		Path:              path,
-		workspaces:        make(map[string]*Workspace),
-		WorkspacesChanged: make(chan struct{}),
+func New(path string, console *console.Service, devMode bool) (*Agent, error) {
+	var cfg *config.Config
+	var err error
+	if path != "" {
+		cfg, err = config.Open(path)
+	} else {
+		cfg, err = config.OpenDefault()
 	}
-
-	if len(a.Path) == 0 {
-		p, err := defaultPath()
-		if err != nil {
-			return nil, err
-		}
-		a.Path = p
-	}
-
-	bin, err := exec.LookPath("go")
 	if err != nil {
 		return nil, err
 	}
-
+	a := &Agent{
+		Config:  cfg,
+		DevMode: devMode,
+		Console: console,
+		Logger:  console,
+	}
 	if a.Logger == nil {
 		a.Logger = &null.Logger{}
 	}
-
-	cfg := &config.Config{Agent: config.Agent{
-		GoBin:                bin,
-		SocketPath:           filepath.Join(a.Path, "agent.sock"),
-		WorkspacesPath:       filepath.Join(a.Path, "workspaces"),
-		WorkspaceBinPath:     filepath.Join(a.Path, "bin"),
-		WorkspaceSocketsPath: filepath.Join(a.Path, "sockets"),
-	}}
-	err = config.ParseFile(filepath.Join(a.Path, "config.toml"), cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	a.Agent = cfg.Agent
-
-	os.MkdirAll(a.WorkspacesPath, 0700)
-	os.MkdirAll(a.WorkspaceSocketsPath, 0700)
-	os.MkdirAll(a.WorkspaceBinPath, 0700)
-
 	return a, nil
 }
 
 func (a *Agent) InitializeDaemon() (err error) {
-	spaces, err := a.Workspaces()
+	spaces, err := a.Config.Workspaces()
 	if err != nil {
 		return err
 	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	for _, space := range spaces {
-		a.Daemon.AddServices(space)
+		sup := supervisor.New(space.Path, space.Name, a.Console.NewPipe("@"+space.Name))
+		a.workspaces = append(a.workspaces, &workspace.Entry{
+			Config:     space,
+			Supervisor: sup,
+			Service:    nil,
+		})
+		a.Daemon.AddServices(sup)
 	}
 	return nil
 }
 
+func (a *Agent) DaemonServices() []daemon.Service {
+	a.Systray = &systray.Service{
+		Config: a.Config,
+		Agent:  a,
+	}
+	services := []daemon.Service{
+		a,
+		a.Console,
+		a.Systray,
+		&rpc.Service{
+			Config: a.Config,
+			Agent:  a,
+		},
+	}
+	if a.DevMode {
+		services = append(services, []daemon.Service{
+			&selfdev.Service{},
+		}...)
+	}
+	return services
+}
+
 func (a *Agent) Serve(ctx context.Context) {
-	a.Watch(ctx)
-}
-
-// Workspace returns a Workspace for the given path. The path must match
-// either:
-//   * the workspace symlink's basename in the agent's WorkspacesPath.
-//   * the full path to the target of a workspace symlink in WorkspacesPath.
-//   * full path to the workspace anywhere else. it will be symlinked to
-//     the Workspaces path using the basename of the full path.
-func (a *Agent) Workspace(path string) *Workspace {
-	// check to see if the workspace is cached
-	// cached=workspace is running through an agent QRPC call, or showing the
-	// workspace in the systray.
-	a.mu.RLock()
-	ws := a.workspaces[path]
-	a.mu.RUnlock()
-	if ws != nil {
-		return ws
-	}
-
-	// now look for a symlink in ~/.tractor/workspaces
-	wss, err := a.Workspaces()
-	if err != nil {
-		panic(err)
-	}
-	for _, ws := range wss {
-		if ws.Name == path || ws.TargetPath == path {
-			return ws
-		}
-	}
-
-	// if full path is a dir with workspace.go, symlink it
-	basename, err := a.symlinkWorkspace(path)
-	if err != nil {
-		return nil
-	}
-
-	return a.Workspace(basename)
-}
-
-func (a *Agent) symlinkWorkspace(path string) (string, error) {
-	fi, err := os.Lstat(filepath.Join(path, "workspace.go"))
-	if err != nil {
-		return "", err
-	}
-
-	if fi.IsDir() {
-		return "", nil
-	}
-
-	basepath := filepath.Base(path)
-	base := basepath
-	i := 1
 	for {
-		err = os.Symlink(path, filepath.Join(a.WorkspacesPath, base))
-		if err != nil && !os.IsExist(err) {
-			return base, err
+		// TODO: listen for ctx finished
+
+		time.Sleep(2 * time.Second) // TODO: no hardcode
+		entries, err := a.LookupServices()
+		if err != nil {
+			panic(err)
 		}
 
-		if err == nil {
-			return base, nil
+		reloadSystray := false
+		a.mu.Lock()
+
+		// delete non-supervised workspaces not in entries
+		n := 0
+		for _, s := range a.workspaces {
+			if !s.Supervised() {
+				for _, entry := range entries {
+					if s.Path() == entry.Info {
+						a.workspaces[n] = s
+						n++
+						break
+					}
+				}
+			} else {
+				a.workspaces[n] = s
+				n++
+			}
+		}
+		before := len(a.workspaces)
+		a.workspaces = a.workspaces[:n]
+		if len(a.workspaces) < before {
+			reloadSystray = true
 		}
 
-		i++
-		base = fmt.Sprintf("%s-%d", basepath, i)
+		// update/add entries to workspaces
+		for _, entry := range entries {
+			parts := strings.Split(entry.Name, ".")
+			name := parts[0]
+			isnew := true
+			for _, s := range a.workspaces {
+				if s.Path() == entry.Info {
+					isnew = false
+					s.Service = entry
+				}
+			}
+			if isnew {
+				a.workspaces = append(a.workspaces, &workspace.Entry{
+					Config: config.Workspace{
+						Name: name,
+						Path: entry.Info,
+					},
+					Supervisor: nil,
+					Service:    entry,
+				})
+				reloadSystray = true
+			}
+		}
+		a.mu.Unlock()
+
+		if reloadSystray && a.Systray != nil {
+			a.Systray.Restart()
+		}
 	}
 }
 
-// Workspaces returns the workspaces under this agent's WorkspacesPath.
-func (a *Agent) Workspaces() ([]*Workspace, error) {
-	entries, err := ioutil.ReadDir(a.WorkspacesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	workspaces := make([]*Workspace, 0, len(entries))
+func (a *Agent) Workspaces() []*workspace.Entry {
 	a.mu.Lock()
-	for _, entry := range entries {
-		if !a.isWorkspaceDir(entry) {
-			continue
-		}
+	defer a.mu.Unlock()
+	w := make([]*workspace.Entry, len(a.workspaces))
+	copy(w, a.workspaces)
+	return w
+}
 
-		n := entry.Name()
-		ws := a.workspaces[n]
-		if ws == nil {
-			ws, err = OpenWorkspace(a, n)
-			if err != nil {
-				return nil, err
-			}
-			a.workspaces[n] = ws
+func (a *Agent) Supervisor(workspacePath string) *supervisor.Supervisor {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, s := range a.workspaces {
+		if s.Path() == workspacePath {
+			return s.Supervisor
 		}
-		workspaces = append(workspaces, ws)
 	}
-	a.mu.Unlock()
-	return workspaces, nil
+	return nil
 }
 
 // Shutdown shuts all workspaces down and cleans up socket files.
-func (a *Agent) Shutdown() {
+func (a *Agent) TerminateDaemon() {
 	logging.Infof(a.Logger, "shutting down")
-	os.RemoveAll(a.SocketPath)
+	os.RemoveAll(a.Config.Agent.SocketPath)
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	for _, ws := range a.workspaces {
-		ws.Stop()
-	}
-}
-
-func (a *Agent) Watch(ctx context.Context) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		info(a.Logger, "unable to create watcher:", err)
-		return
-	}
-	watcher.Add(a.WorkspacesPath)
-	debounce := debouncer.New(20 * time.Millisecond)
-	for {
-		select {
-		case <-ctx.Done():
-			watcher.Close()
-			return
-		case event, ok := <-watcher.Events:
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Chmod == fsnotify.Chmod {
-				continue
-			}
-
-			debounce(func() {
-				a.WorkspacesChanged <- struct{}{}
-			})
-
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return
-			}
-			logErr(a.Logger, "watcher error:", err)
+		if ws.Supervised() && ws.Supervisor.Daemon != nil {
+			ws.Supervisor.Daemon.Stop()
 		}
 	}
 }
 
-func (a *Agent) isWorkspaceDir(fi os.FileInfo) bool {
-	if fi.IsDir() {
-		return true
+func (a *Agent) LookupServices() ([]*mdns.ServiceEntry, error) {
+	entriesCh := make(chan *mdns.ServiceEntry, 4)
+	var entries []*mdns.ServiceEntry
+	go func() {
+		for entry := range entriesCh {
+			if strings.HasSuffix(entry.Name, "_tractor._tcp.local.") {
+				entries = append(entries, entry)
+			}
+		}
+	}()
+	if err := mdns.Lookup("_tractor._tcp", entriesCh); err != nil {
+		return nil, err
 	}
-
-	path := filepath.Join(a.WorkspacesPath, fi.Name())
-	resolved, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		logErr(a.Logger, err)
-		return false
-	}
-
-	if resolved == path {
-		return false
-	}
-
-	rfi, err := os.Lstat(resolved)
-	if err != nil {
-		logErr(a.Logger, err)
-		return false
-	}
-
-	return rfi.IsDir()
+	close(entriesCh)
+	return entries, nil
 }
 
-func defaultPath() (string, error) {
-	usr, err := user.Current()
-	if err != nil {
-		return "", err
-	}
+// func (a *Agent) Watch(ctx context.Context) {
+// 	watcher, err := fsnotify.NewWatcher()
+// 	if err != nil {
+// 		info(a.Logger, "unable to create watcher:", err)
+// 		return
+// 	}
+// 	watcher.Add(a.Config.Agent.WorkspacesDir)
+// 	debounce := debouncer.New(20 * time.Millisecond)
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			watcher.Close()
+// 			return
+// 		case event, ok := <-watcher.Events:
+// 			if !ok {
+// 				return
+// 			}
+// 			if event.Op&fsnotify.Chmod == fsnotify.Chmod {
+// 				continue
+// 			}
 
-	return filepath.Join(usr.HomeDir, ".tractor"), nil
-}
+// 			debounce(func() {
+// 				a.WorkspacesChanged <- struct{}{}
+// 			})
 
-func info(l logging.Logger, args ...interface{}) {
-	if !isNilValue(l) {
-		l.Info(args...)
-	}
-}
-
-func logErr(l logging.Logger, args ...interface{}) {
-	if !isNilValue(l) {
-		l.Error(args...)
-	}
-}
-
-func isNilValue(i interface{}) bool {
-	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
-}
+// 		case err, ok := <-watcher.Errors:
+// 			if !ok {
+// 				return
+// 			}
+// 			logErr(a.Logger, "watcher error:", err)
+// 		}
+// 	}
+// }

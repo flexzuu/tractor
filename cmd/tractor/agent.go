@@ -85,7 +85,10 @@ func agentQRPCCall(w io.Writer, cmd, arg string) (string, error) {
 	if os.Getenv("QRPC_HOST") != "" {
 		sess, err = mux.DialWebsocket(os.Getenv("QRPC_HOST"))
 	} else {
-		ag := openAgent()
+		ag, err := agent.New(tractorUserPath, nil, false)
+		if err != nil {
+			return "", err
+		}
 		sess, err = mux.DialUnix(ag.SocketPath)
 	}
 	if err != nil {
@@ -118,18 +121,4 @@ func agentQRPCCall(w io.Writer, cmd, arg string) (string, error) {
 	}
 
 	return msg, nil
-}
-
-func openAgent() *agent.Agent {
-	ag, err := agent.Open(tractorUserPath, nil, false)
-	fatal(err)
-	return ag
-}
-
-func agentSockExists(ag *agent.Agent) bool {
-	_, err := os.Stat(ag.SocketPath)
-	if err != nil {
-		return !os.IsNotExist(err)
-	}
-	return true
 }
