@@ -176,11 +176,11 @@ func (a *Agent) Workspaces() []*workspace.Entry {
 	return w
 }
 
-func (a *Agent) Supervisor(workspacePath string) *supervisor.Supervisor {
+func (a *Agent) Supervisor(workspacePathOrName string) *supervisor.Supervisor {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for _, s := range a.workspaces {
-		if s.Path() == workspacePath {
+		if s.Path() == workspacePathOrName || s.Name() == workspacePathOrName {
 			return s.Supervisor
 		}
 	}

@@ -110,6 +110,7 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
     }
 
     onStart(app: FrontendApplication): void {
+        this.tractor.connectAgent();
         this.widgets.onDidCreateWidget((e) => {
             if (e.widget.constructor.name === "WebviewWidget") {
                 e.widget.title.iconClass = "fa fas fa-clipboard-list";

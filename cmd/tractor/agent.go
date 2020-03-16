@@ -89,7 +89,7 @@ func agentQRPCCall(w io.Writer, cmd, arg string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		sess, err = mux.DialUnix(ag.SocketPath)
+		sess, err = mux.DialUnix(ag.Config.Agent.SocketPath)
 	}
 	if err != nil {
 		return "", err

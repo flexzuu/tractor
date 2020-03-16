@@ -33,15 +33,20 @@ class InspectorContainer extends React.Component {
 		}
         var session = new qmux.Session(conn);
         var client = new qrpc.Client(session);
-        var resp = await client.call("connect", window.workspacePath);
-        this.connectWorkspace(resp.reply);
+        var resp = await client.call("list");
+        var workspace = resp.reply.find((el) => el.Path == window.workspacePath);
+        if (workspace) {
+            this.connectWorkspace(workspace.Endpoint);
+        } else {
+            console.error("workspace path not a known workspace");
+        }
     }
 
-    async connectWorkspace(socketPath) {
+    async connectWorkspace(endpoint) {
 		try {
-			var conn = await qmux.DialWebsocket("ws://localhost:3001"+socketPath);
+			var conn = await qmux.DialWebsocket(endpoint);
 		} catch (e) {
-			scheduleRetry(() => this.connectWorkspace(socketPath));
+			scheduleRetry(() => this.connectWorkspace(endpoint));
 			return;
 		}
         var session = new qmux.Session(conn);
@@ -51,7 +56,7 @@ class InspectorContainer extends React.Component {
 		this.api.handle("shutdown", {
 			"serveRPC": async (r, c) => {
                 console.log("DEBUG: reload/shutdown received...");
-                scheduleRetry(() => this.connectWorkspace(socketPath));
+                scheduleRetry(() => this.connectWorkspace(endpoint));
 				r.return();
 			}
         });

@@ -94,27 +94,35 @@ export class TractorService implements WidgetFactory {
     }
 
     async connectAgent() {
+        this.logger.info("connecting to agent...");
         try {
 			var conn = await qmux.DialWebsocket("ws://localhost:3001/");
 		} catch (e) {
             this.logger.warn(e);
 			scheduleRetry(() => this.connectAgent());
 			return;
-		}
+        }
+        this.logger.info("agent connected.");
         var session = new qmux.Session(conn);
         var client = new qrpc.Client(session);
         var path = new URI(this.workspace.workspace.uri).path.toString()
-        var resp = await client.call("connect", path);
-        this.connectWorkspace(resp.reply);
+        var resp = await client.call("list");
+        var workspace = resp.reply.find((el) => el.Path == path);
+        if (workspace) {
+            this.connectWorkspace(workspace.Endpoint);
+        } else {
+            this.logger.error("workspace path not a known workspace");
+        }
+        
     }
 
-    async connectWorkspace(socketPath: string) {
-        this.logger.warn("attempting connect");
+    async connectWorkspace(endpoint: string) {
+        this.logger.warn("connecting to workspace: "+endpoint);
 		try {
-			var conn = await qmux.DialWebsocket("ws://localhost:3001"+socketPath);
+			var conn = await qmux.DialWebsocket(endpoint);
 		} catch (e) {
             this.logger.warn(e);
-			scheduleRetry(() => this.connectWorkspace(socketPath));
+			scheduleRetry(() => this.connectWorkspace(endpoint));
 			return;
 		}
         var session = new qmux.Session(conn);
@@ -122,7 +130,7 @@ export class TractorService implements WidgetFactory {
 		this.client = new qrpc.Client(session, this.api);
 		this.api.handle("shutdown", {
 			"serveRPC": async (r, c) => {
-                scheduleRetry(() => this.connectWorkspace(socketPath));
+                scheduleRetry(() => this.connectWorkspace(endpoint));
                 r.return();
 			}
         });

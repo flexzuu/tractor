@@ -61,6 +61,7 @@ func (s *Service) InitializeDaemon() (err error) {
 	s.viewState = view.New(s.State.Root)
 
 	s.api = qrpc.NewAPI()
+	s.api.HandleFunc("echo", s.Echo())
 	s.api.HandleFunc("console", s.Console())
 	s.api.HandleFunc("reload", s.Reload())
 	s.api.HandleFunc("refreshObject", s.RefreshObject())

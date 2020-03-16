@@ -7,17 +7,37 @@ import (
 	"github.com/manifold/tractor/pkg/misc/logging"
 )
 
+type workspaceInfo struct {
+	Name     string
+	Endpoint string
+	Path     string
+}
+
+func (s *Service) List() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var list []workspaceInfo
+		for _, e := range s.Agent.Workspaces() {
+			list = append(list, workspaceInfo{
+				Name:     e.Name(),
+				Endpoint: e.Endpoint(),
+				Path:     e.Path(),
+			})
+		}
+		r.Return(list)
+	}
+}
+
 func (s *Service) Start() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {
-		var workspacePath string
-		if err := c.Decode(&workspacePath); err != nil {
+		var workspacePathOrName string
+		if err := c.Decode(&workspacePathOrName); err != nil {
 			r.Return(err)
 			return
 		}
 
-		sup := s.Agent.Supervisor(workspacePath)
+		sup := s.Agent.Supervisor(workspacePathOrName)
 		if sup == nil {
-			r.Return(fmt.Errorf("no supervisor for %q", workspacePath))
+			r.Return(fmt.Errorf("no supervisor for %q", workspacePathOrName))
 			return
 		}
 
@@ -32,15 +52,15 @@ func (s *Service) Start() func(qrpc.Responder, *qrpc.Call) {
 
 func (s *Service) Stop() func(qrpc.Responder, *qrpc.Call) {
 	return func(r qrpc.Responder, c *qrpc.Call) {
-		var workspacePath string
-		if err := c.Decode(&workspacePath); err != nil {
+		var workspacePathOrName string
+		if err := c.Decode(&workspacePathOrName); err != nil {
 			r.Return(err)
 			return
 		}
 
-		sup := s.Agent.Supervisor(workspacePath)
+		sup := s.Agent.Supervisor(workspacePathOrName)
 		if sup == nil {
-			r.Return(fmt.Errorf("no supervisor for %q", workspacePath))
+			r.Return(fmt.Errorf("no supervisor for %q", workspacePathOrName))
 			return
 		}
 

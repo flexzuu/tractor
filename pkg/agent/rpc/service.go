@@ -7,6 +7,7 @@ import (
 
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
+	"github.com/manifold/tractor/pkg/agent/workspace"
 	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/workspace/supervisor"
@@ -26,6 +27,7 @@ type Service struct {
 // only dep on agent, avoids dep cycle
 type agent interface {
 	Supervisor(path string) *supervisor.Supervisor
+	Workspaces() []*workspace.Entry
 }
 
 func (s *Service) InitializeDaemon() (err error) {
@@ -34,6 +36,7 @@ func (s *Service) InitializeDaemon() (err error) {
 	}
 
 	s.api = qrpc.NewAPI()
+	s.api.HandleFunc("list", s.List())
 	s.api.HandleFunc("start", s.Start())
 	s.api.HandleFunc("stop", s.Stop())
 	return nil
