@@ -32,19 +32,26 @@ versions:
 	@git --version
 	@echo "yarn $(shell yarn --version)"
 	@echo "typescript $(shell tsc --version)"
+	@./local/bin/tractor version
 
 qtalk:
 	git submodule update --init --recursive
 	make -C qtalk link
 
+commit_oid = $(shell git rev-list -1 HEAD)
+
 local/bin:
 	mkdir -p local/bin
 
 local/bin/tractor-agent: local/bin
-	go build -o ./local/bin/tractor-agent ./cmd/tractor-agent
+	go build \
+		-ldflags "-X main.commitOID=$(commit_oid)" \
+		-o ./local/bin/tractor-agent ./cmd/tractor-agent
 
 local/bin/tractor: local/bin
-	go build -o ./local/bin/tractor ./cmd/tractor
+	go build \
+		-ldflags "-X main.commitOID=$(commit_oid)" \
+		-o ./local/bin/tractor ./cmd/tractor
 
 local/workspace:
 	mkdir -p local
