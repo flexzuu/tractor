@@ -33,6 +33,7 @@ func init() {
 	rootCmd.AddCommand(shellCmd())
 	rootCmd.AddCommand(browseCmd())
 	rootCmd.AddCommand(runCmd())
+	rootCmd.AddCommand(versionCmd())
 
 	ct, cancelFunc := context.WithCancel(context.Background())
 	sigQuit = ct

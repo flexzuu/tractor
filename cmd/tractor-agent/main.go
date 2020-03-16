@@ -28,6 +28,7 @@ var (
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&devMode, "dev", "d", false, "run in debug mode")
 	rootCmd.PersistentFlags().StringVarP(&tractorUserPath, "path", "p", "", "path to the user tractor directory (default is ~/.tractor)")
+	rootCmd.AddCommand(versionCmd())
 }
 
 func main() {
