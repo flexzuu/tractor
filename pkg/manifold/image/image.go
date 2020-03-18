@@ -43,13 +43,18 @@ type Image struct {
 	filepath string
 
 	lastObjPath map[string]string
+	writtenPath map[string]bool
 	writeMu     sync.Mutex
 }
 
 func New(filepath string) *Image {
+	return NewWith(afero.NewOsFs(), filepath)
+}
+
+func NewWith(fs afero.Fs, filepath string) *Image {
 	return &Image{
 		filepath:    filepath,
-		fs:          afero.NewBasePathFs(afero.NewOsFs(), filepath),
+		fs:          afero.NewBasePathFs(fs, filepath),
 		lastObjPath: make(map[string]string),
 	}
 }
@@ -190,12 +195,27 @@ func (i *Image) Write(root manifold.Object) error {
 	defer i.writeMu.Unlock()
 
 	i.objFs = afero.NewBasePathFs(i.fs, ObjectDir)
+	i.writtenPath = make(map[string]bool)
 
 	if err := i.fs.MkdirAll(ObjectDir, 0755); err != nil {
 		return err
 	}
 
-	return i.writeObject(i.objFs, "/", root)
+	if err := i.writeObject(i.objFs, "/", root); err != nil {
+		return err
+	}
+
+	for _, oldPath := range i.lastObjPath {
+		if oldPath == "/" || i.writtenPath[oldPath] {
+			continue
+		}
+
+		if err := i.objFs.RemoveAll(oldPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (i *Image) writeObject(fs afero.Fs, path string, obj manifold.Object) error {
@@ -212,6 +232,7 @@ func (i *Image) writeObject(fs afero.Fs, path string, obj manifold.Object) error
 
 	for _, child := range obj.Children() {
 		childPath := paths.Join(path, pathName(child))
+		i.writtenPath[childPath] = true
 		oldPath := i.lastObjPath[child.ID()]
 		if oldPath != "" && oldPath != childPath {
 			if err := i.objFs.Rename(oldPath, childPath); err != nil {
