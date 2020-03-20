@@ -27,7 +27,6 @@ func fnCmd() *cobra.Command {
 			var sess mux.Session
 			var err error
 			if fn[0] == "agent" {
-<<<<<<< HEAD
 				cfg, cErr := config.OpenDefault()
 				if cErr != nil {
 					log.Fatal(cErr)
@@ -37,17 +36,6 @@ func fnCmd() *cobra.Command {
 				svcs, sErr := lookupServices()
 				if sErr != nil {
 					log.Fatal(sErr)
-=======
-				cfg, err := config.OpenDefault()
-				if err != nil {
-					log.Fatal(err)
-				}
-				sess, err = mux.DialUnix(cfg.Agent.SocketPath)
-			} else {
-				svcs, err := lookupServices()
-				if err != nil {
-					log.Fatal(err)
->>>>>>> agent,studio: studio has new method to call on agent that gives new workspace endpoint
 				}
 				svc := findRecord(svcs, fn[0])
 				var addr string
