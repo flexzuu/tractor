@@ -193,6 +193,7 @@ type Component interface {
 	FieldType(path string) reflect.Type
 
 	Reload() error
+	SiblingReloaded(sibling Component)
 
 	// TODO
 	Fields()
@@ -268,6 +269,7 @@ type Object interface {
 	Snapshot() ObjectSnapshot
 
 	Refresh() error
+	ComponentReloaded(com Component)
 
 	UpdateRegistry() error
 }

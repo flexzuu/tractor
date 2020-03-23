@@ -196,36 +196,7 @@ func (c *component) Container() manifold.Object {
 }
 
 func (c *component) SetContainer(obj manifold.Object) {
-	if t, ok := c.object.(notify.Topic); ok && t != nil {
-		t.Unobserve(c)
-	}
 	c.object = obj
-	if t, ok := c.object.(notify.Topic); ok && t != nil {
-		t.Observe(c)
-	}
-}
-
-func (c *component) Notify(event interface{}) {
-	if !(c.enabled && c.loaded) {
-		return
-	}
-
-	change, ok := event.(manifold.ObjectChange)
-	if !ok {
-		return
-	}
-
-	if !strings.HasSuffix(change.Path, "/::Reload") {
-		return
-	}
-
-	if change.Path == fmt.Sprintf("%s/::Reload", c.name) {
-		return
-	}
-
-	if sco, ok := c.Pointer().(SiblingComponentObserver); ok {
-		sco.SiblingComponentReload(change.New)
-	}
 }
 
 // TODO: rename to Value()?
@@ -260,12 +231,22 @@ func (c *component) Reload() error {
 
 	c.SetEnabled(true)
 	c.loaded = true
-	notify.Send(c.object, manifold.ObjectChange{
-		Object: c.object,
-		Path:   fmt.Sprintf("%s/::Reload", c.name),
-		New:    c.Pointer(),
-	})
+	c.object.ComponentReloaded(c)
 	return nil
+}
+
+func (c *component) SiblingReloaded(other manifold.Component) {
+	if c == other {
+		return
+	}
+
+	if !(c.enabled && c.loaded) {
+		return
+	}
+
+	if sco, ok := c.Pointer().(SiblingComponentObserver); ok {
+		sco.SiblingComponentReload(other.Pointer())
+	}
 }
 
 // TODO

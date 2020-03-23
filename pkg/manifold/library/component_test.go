@@ -1,10 +1,11 @@
-package library
+package library_test
 
 import (
 	"errors"
 	"fmt"
 	"testing"
 
+	"github.com/manifold/tractor/pkg/manifold/library"
 	"github.com/manifold/tractor/pkg/manifold/object"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func (c *testComponent) Err(msg string) (interface{}, error) {
 func TestComponent(t *testing.T) {
 	t.Run("GetSetFields", func(t *testing.T) {
 		obj := &testComponent{Foo: "foo"}
-		com := newComponent("test", obj, "")
+		com := library.NewComponent("test", obj, "")
 		v, _, _ := com.GetField("Foo")
 		assert.Equal(t, "foo", v)
 		com.SetField("Foo", "bar")
@@ -33,7 +34,7 @@ func TestComponent(t *testing.T) {
 	})
 	t.Run("CallMethod", func(t *testing.T) {
 		obj := &testComponent{Foo: "foo"}
-		com := newComponent("test", obj, "")
+		com := library.NewComponent("test", obj, "")
 
 		var echoRet []string
 		noerr := com.CallMethod("Echo", []interface{}{"1", "2", "3"}, &echoRet)
@@ -80,9 +81,9 @@ func TestComponentEnabledNotify(t *testing.T) {
 	obj := object.New("root")
 	refresher := &observingComponent{Name: "refresher"}
 	listener := &observingComponent{Name: "listener"}
-	otherCom := newComponent("other", &testComponent{Foo: "foo"}, "")
-	refresherCom := newComponent("refresher", refresher, "")
-	listenerCom := newComponent("listener", listener, "")
+	otherCom := library.NewComponent("other", &testComponent{Foo: "foo"}, "")
+	refresherCom := library.NewComponent("refresher", refresher, "")
+	listenerCom := library.NewComponent("listener", listener, "")
 	obj.AppendComponent(otherCom)
 	obj.AppendComponent(refresherCom)
 	obj.AppendComponent(listenerCom)
@@ -93,19 +94,19 @@ func TestComponentEnabledNotify(t *testing.T) {
 
 	assert.Equal(t, 1, refresher.countEnabled)
 	assert.Equal(t, 0, refresher.countDisabled)
-	assert.Equal(t, 1, refresher.SiblingComponentReloads("*library.observingComponent"))
+	assert.Equal(t, 1, refresher.SiblingComponentReloads("*library_test.observingComponent"))
 	assert.Equal(t, 1, listener.countEnabled)
 	assert.Equal(t, 0, listener.countDisabled)
-	assert.Equal(t, 0, listener.SiblingComponentReloads("*library.observingComponent"))
+	assert.Equal(t, 0, listener.SiblingComponentReloads("*library_test.observingComponent"))
 
 	refresherCom.Reload()
 
 	assert.Equal(t, 2, refresher.countEnabled)
 	assert.Equal(t, 1, refresher.countDisabled)
-	assert.Equal(t, 1, refresher.SiblingComponentReloads("*library.observingComponent"))
+	assert.Equal(t, 1, refresher.SiblingComponentReloads("*library_test.observingComponent"))
 	assert.Equal(t, 1, listener.countEnabled)
 	assert.Equal(t, 0, listener.countDisabled)
-	assert.Equal(t, 1, listener.SiblingComponentReloads("*library.observingComponent"))
+	assert.Equal(t, 1, listener.SiblingComponentReloads("*library_test.observingComponent"))
 
 	for name, count := range listener.countSiblingReload {
 		t.Logf("listener %q reloads: %d", name, count)

@@ -271,6 +271,12 @@ func (o *object) Refresh() error {
 	return nil
 }
 
+func (o *object) ComponentReloaded(sibling manifold.Component) {
+	for _, c := range o.Components() {
+		c.SiblingReloaded(sibling)
+	}
+}
+
 func (o *object) UpdateRegistry() (err error) {
 	entries := RegistryPreloader(o)
 	for _, com := range o.Components() {
