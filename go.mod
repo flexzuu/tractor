@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/Schobers/bindatafs v0.0.0-20190306220051-cb60ddcc20d0
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/c-bata/go-prompt v0.2.3
 	github.com/containous/yaegi v0.7.4
@@ -16,6 +17,7 @@ require (
 	github.com/getlantern/uuid v1.2.0 // indirect
 	github.com/gliderlabs/com v0.1.1-0.20191023181249-02615ad445ac // indirect
 	github.com/gliderlabs/stdcom v0.0.0-20171109193247-64a0d4e5fd86 // indirect
+	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/goji/httpauth v0.0.0-20160601135302-2da839ab0f4d
 	github.com/golangplus/bytes v0.0.0-20160111154220-45c989fe5450 // indirect
 	github.com/golangplus/fmt v0.0.0-20150411045040-2a5d6d7d2995 // indirect
@@ -36,11 +38,12 @@ require (
 	github.com/nickvanw/ircx/v2 v2.0.0
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 // indirect
+	github.com/progrium/hotweb v0.0.0-20200402223854-7142ba177f65
 	github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/rs/xid v1.2.1
-	github.com/skratchdot/open-golang v0.0.0-20190402232053-79abb63cd66e
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0

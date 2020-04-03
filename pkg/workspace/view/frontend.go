@@ -64,14 +64,15 @@ type ComponentType struct {
 }
 
 type State struct {
-	Projects       []Project         `msgpack:"projects"`
-	CurrentProject string            `msgpack:"currentProject"`
-	Components     []ComponentType   `msgpack:"components"`
-	Prefabs        []Prefab          `msgpack:"prefabs"`
-	Hierarchy      []string          `msgpack:"hierarchy"`
-	Nodes          map[string]Node   `msgpack:"nodes"`
-	NodePaths      map[string]string `msgpack:"nodePaths"`
-	SelectedNode   string            `msgpack:"selectedNode"`
+	Projects        []Project         `msgpack:"projects"`
+	CurrentProject  string            `msgpack:"currentProject"`
+	Components      []ComponentType   `msgpack:"components"`
+	Prefabs         []Prefab          `msgpack:"prefabs"`
+	Hierarchy       []string          `msgpack:"hierarchy"`
+	Nodes           map[string]Node   `msgpack:"nodes"`
+	NodePaths       map[string]string `msgpack:"nodePaths"`
+	SelectedNode    string            `msgpack:"selectedNode"`
+	EditorsEndpoint string            `msgpack:"editorsEndpoint"`
 
 	mu sync.Mutex
 }
@@ -244,20 +245,15 @@ type ButtonProvider interface {
 	InspectorButtons() []Button
 }
 
-func strInSlice(strs []string, str string) bool {
-	for _, s := range strs {
-		if s == str {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *State) Update(root manifold.Object) {
+	// reset/clear nodes
 	s.Hierarchy = []string{}
 	s.Nodes = make(map[string]Node)
+	// walk every object in the tree
 	manifold.Walk(root, func(n manifold.Object) {
+		// all the nodes paths
 		s.Hierarchy = append(s.Hierarchy, n.Path())
+		// start a node struct based on node passed in
 		node := Node{
 			Name:   n.Name(),
 			Active: true,
@@ -268,6 +264,7 @@ func (s *State) Update(root manifold.Object) {
 			Components: []Component{},
 		}
 		for _, com := range n.Components() {
+			// get all the fields of the component
 			var fields []Field
 			c := reflected.ValueOf(com.Pointer())
 			path := n.Path() + "/" + com.Name()
@@ -278,6 +275,7 @@ func (s *State) Update(root manifold.Object) {
 				}
 				fields = append(fields, exportField(c, field, path, n))
 			}
+			// see if the component provides buttons
 			var buttons []Button
 			p, ok := com.Pointer().(ButtonProvider)
 			if ok {
@@ -300,6 +298,7 @@ func (s *State) Update(root manifold.Object) {
 				}
 			}
 
+			// look up the filepath for this component
 			var filepath string
 			if com.ID() != "" {
 				rc := library.LookupID(com.ID())
@@ -315,11 +314,13 @@ func (s *State) Update(root manifold.Object) {
 				filepath = rc.Filepath
 			}
 
+			// look up related components to this component
 			var related []string
 			for _, rc := range library.Related(library.Lookup(com.Name())) {
 				related = append(related, rc.Name)
 			}
 
+			// add component to frontend node's components
 			node.Components = append(node.Components, Component{
 				Name:     com.Name(),
 				Filepath: filepath,
@@ -328,6 +329,7 @@ func (s *State) Update(root manifold.Object) {
 				Related:  related,
 			})
 		}
+		// add the node to state
 		s.mu.Lock()
 		s.Nodes[n.ID()] = node
 		s.NodePaths[n.Path()] = n.ID()
@@ -356,4 +358,13 @@ func New(root manifold.Object) *State {
 	}
 	state.Update(root)
 	return state
+}
+
+func strInSlice(strs []string, str string) bool {
+	for _, s := range strs {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }

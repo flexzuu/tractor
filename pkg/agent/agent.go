@@ -58,6 +58,13 @@ func New(path string, console *console.Service, devMode bool) (*Agent, error) {
 	if a.Logger == nil {
 		a.Logger = &null.Logger{}
 	}
+	if devMode {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		os.Setenv("TRACTOR_SRC", wd)
+	}
 	return a, nil
 }
 

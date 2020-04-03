@@ -14,6 +14,7 @@ import (
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 	"github.com/manifold/tractor/pkg/misc/buffer"
 	"github.com/manifold/tractor/pkg/misc/logging"
+	"github.com/manifold/tractor/pkg/workspace/editor"
 	"github.com/manifold/tractor/pkg/workspace/state"
 	"github.com/manifold/tractor/pkg/workspace/view"
 	"github.com/miekg/dns"
@@ -26,6 +27,7 @@ type Service struct {
 	Output *buffer.Buffer
 	Log    logging.Logger
 	State  *state.Service
+	Editor *editor.Service
 
 	viewState *view.State
 	clients   map[qrpc.Caller]string
@@ -42,6 +44,7 @@ func (s *Service) updateView() {
 		return
 	}
 	// TODO: mutex, etc
+	s.viewState.EditorsEndpoint = s.Editor.Endpoint()
 	s.viewState.Update(s.State.Root)
 	for client, callback := range s.clients {
 		_, err := client.Call(callback, s.viewState, nil)

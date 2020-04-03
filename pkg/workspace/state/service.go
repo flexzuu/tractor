@@ -23,7 +23,7 @@ type Service struct {
 }
 
 func (s *Service) InitializeDaemon() (err error) {
-	wd, err := os.Getwd()
+	wd, err := os.Getwd() // TODO: override with env var
 	if err != nil {
 		return err
 	}

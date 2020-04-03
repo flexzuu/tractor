@@ -38,13 +38,10 @@ class InspectorPanel {
     private _disposables: theia.Disposable[] = [];
 
     public static createOrShow(extensionPath: string) {
-        const column = theia.window.activeTextEditor
-            ? theia.window.activeTextEditor.viewColumn
-            : undefined;
 
         // If we already have a panel, show it.
         if (InspectorPanel.currentPanel) {
-            InspectorPanel.currentPanel._panel.reveal(column);
+            InspectorPanel.currentPanel._panel.reveal();
             return;
         }
 
@@ -52,7 +49,7 @@ class InspectorPanel {
         const panel = theia.window.createWebviewPanel(
             InspectorPanel.viewType,
             'Inspector',
-            column || theia.ViewColumn.One,
+            theia.ViewColumn.Three,
             {
                 // Enable javascript in the webview
                 enableScripts: true,

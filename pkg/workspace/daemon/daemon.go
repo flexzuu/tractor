@@ -13,6 +13,7 @@ import (
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/mdns"
 	"github.com/manifold/tractor/pkg/stdlib"
+	"github.com/manifold/tractor/pkg/workspace/editor"
 	"github.com/manifold/tractor/pkg/workspace/rpc"
 	"github.com/manifold/tractor/pkg/workspace/state"
 
@@ -78,6 +79,9 @@ func Run() {
 		},
 		rpcSvc,
 		&mdns.Service{
+			Log: logger,
+		},
+		&editor.Service{
 			Log: logger,
 		},
 	}...)

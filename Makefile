@@ -1,4 +1,4 @@
-.PHONY: build setup clean clobber dev versions studio kill qtalk
+.PHONY: build setup clean clobber dev versions studio kill qtalk data
 
 build: clean local/bin/tractor-agent local/bin/tractor studio/plugins/*/lib
 
@@ -23,8 +23,8 @@ clobber: clean
 	rm -rf studio/shell/src-gen
 	rm -rf studio/shell/node_modules
 	rm -rf studio/shell/webpack.config.js
-	rm -rf studio/extension/lib
-	rm -rf studio/extension/node_modules
+	rm -rf studio/extensions/*/lib
+	rm -rf studio/extensions/*/node_modules
 
 versions:
 	@go version
@@ -61,17 +61,20 @@ local/workspace:
 	rm ~/.tractor/workspaces/dev || true
 	ln -fs $(PWD)/local/workspace ~/.tractor/workspaces/dev
 
-studio: studio/node_modules studio/extension/lib studio/shell/src-gen studio/plugins/*/lib
+studio: studio/node_modules studio/extensions/*/lib studio/shell/src-gen studio/plugins/*/lib
 
 studio/node_modules:
 	cd studio && yarn install
 	cd studio && yarn link qmux qrpc
 
-studio/extension/lib:
-	cd studio/extension && yarn build
+studio/extensions/%/lib:
+	cd $(shell dirname $@) && yarn build
 
 studio/plugins/%/lib:
 	tsc -p $@/..
 
-studio/shell/src-gen: studio/extension/lib
+studio/shell/src-gen: studio/extensions/*/lib
 	cd studio/shell && yarn build
+
+data:
+	make -C pkg/data all

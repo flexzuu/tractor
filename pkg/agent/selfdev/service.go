@@ -108,9 +108,9 @@ func (s *Service) handleLoop(ctx context.Context) {
 			}
 
 			if filepath.Ext(event.Path) == ".ts" || filepath.Ext(event.Path) == ".tsx" {
-				// debounce(func() {
+
 				logging.Info(s.Logger, "ts file changed, compiling...")
-				for _, plugin := range []string{"inspector", "moduleview", "tableview"} {
+				for _, plugin := range []string{"inspector"} {
 					if strings.Contains(event.Path, "/studio/plugins/"+plugin) {
 						go func() {
 							// theia plugin
@@ -122,17 +122,18 @@ func (s *Service) handleLoop(ctx context.Context) {
 						}()
 					}
 				}
-				if strings.Contains(event.Path, "/studio/extension/") {
-					go func() {
-						// theia extension
-						cmd := exec.Command("tsc", "-p", "./studio/extension")
-						cmd.Stdout = s.output
-						cmd.Stderr = s.output
-						cmd.Run()
-						logging.Info(s.Logger, "finished")
-					}()
+				for _, ext := range []string{"tractor", "editorview"} {
+					if strings.Contains(event.Path, "/studio/extensions/"+ext) {
+						go func() {
+							// theia extension
+							cmd := exec.Command("tsc", "-p", "./studio/extensions/"+ext)
+							cmd.Stdout = s.output
+							cmd.Stderr = s.output
+							cmd.Run()
+							logging.Info(s.Logger, "finished")
+						}()
+					}
 				}
-				// })
 
 			}
 

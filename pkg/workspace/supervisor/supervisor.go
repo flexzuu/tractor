@@ -68,6 +68,7 @@ type Supervisor struct {
 	Output     io.WriteCloser
 	Log        L.Logger
 	DaemonArgs []string
+	DaemonEnv  []string
 	DaemonBin  string // absolute path to compiled binary (~/.tractor/bin/{name})
 	GoBin      string
 
