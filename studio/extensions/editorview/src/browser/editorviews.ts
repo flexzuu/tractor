@@ -7,9 +7,9 @@ export const EditorTypes = [
         area: "main"
     },
     {
-        name: "newinspector",
-        label: "newinspector",
+        name: "object",
+        label: "Inspector",
         iconClass: "fa fa-comments",
-        area: "main"
+        area: "right"
     }
 ]

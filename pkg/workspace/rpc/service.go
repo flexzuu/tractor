@@ -2,14 +2,8 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"net"
-	"os"
-	"path"
-	"strconv"
 
-	"github.com/hashicorp/mdns"
 	"github.com/manifold/qtalk/golang/mux"
 	qrpc "github.com/manifold/qtalk/golang/rpc"
 	"github.com/manifold/tractor/pkg/misc/buffer"
@@ -17,13 +11,10 @@ import (
 	"github.com/manifold/tractor/pkg/workspace/editor"
 	"github.com/manifold/tractor/pkg/workspace/state"
 	"github.com/manifold/tractor/pkg/workspace/view"
-	"github.com/miekg/dns"
 )
 
 type Service struct {
-	// Protocol   string
-	ListenAddr string
-
+	Inbox  chan mux.Session
 	Output *buffer.Buffer
 	Log    logging.Logger
 	State  *state.Service
@@ -56,10 +47,7 @@ func (s *Service) updateView() {
 }
 
 func (s *Service) InitializeDaemon() (err error) {
-	if s.l, err = mux.ListenWebsocket(s.ListenAddr); err != nil {
-		return err
-	}
-
+	s.Inbox = make(chan mux.Session)
 	s.clients = make(map[qrpc.Caller]string)
 	s.viewState = view.New(s.State.Root)
 
@@ -88,42 +76,25 @@ func (s *Service) InitializeDaemon() (err error) {
 	return nil
 }
 
-func (s *Service) Records(q dns.Question) []dns.RR {
-	_, p, _ := net.SplitHostPort(s.l.Addr().String())
-	port, _ := strconv.Atoi(p)
-	wd, _ := os.Getwd()
-	zone, _ := mdns.NewMDNSService(path.Base(wd), "_tractor._tcp", "", "", port, nil, []string{wd})
-	return zone.Records(q)
-}
-
 func (s *Service) Serve(ctx context.Context) {
-	server := &qrpc.Server{}
-	s.Log.Infof("daemon listening at %s", s.l.Addr().String())
-	if err := server.Serve(s.l, s.api); err != nil {
-		fmt.Println(err)
+	server := &qrpc.Server{
+		API: s.api,
 	}
-	// if s.Protocol == "unix" {
-	// 	os.Remove(s.ListenAddr)
-	// }
+	for {
+		select {
+		// TODO: case for ctx cancel
+		case sess, ok := <-s.Inbox:
+			if !ok {
+				return
+			}
+			go server.ServeAPI(sess)
+		}
+	}
 }
 
 func (s *Service) TerminateDaemon() error {
 	for client, _ := range s.clients {
 		client.Call("shutdown", nil, nil)
 	}
-	// if s.Protocol == "unix" {
-	// 	os.Remove(s.ListenAddr)
-	// }
 	return nil
-}
-
-func muxListenTo(proto, addr string) (mux.Listener, error) {
-	switch proto {
-	case "websocket":
-		return mux.ListenWebsocket(addr)
-	case "unix":
-		return mux.ListenUnix(addr)
-	}
-
-	return nil, fmt.Errorf("cannot connect to %s, unknown protocol %q", addr, proto)
 }

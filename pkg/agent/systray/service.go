@@ -113,9 +113,9 @@ func (s *Service) Serve(ctx context.Context) {
 				for _, ws := range workspaces {
 					if ws.Name() == msg.Item.Title {
 						if s.Config.BrowserPref != "" {
-							open.StartWith("http://localhost:3000/#"+ws.Path(), s.Config.BrowserPref)
+							open.StartWith("http://localhost:11010/#"+ws.Path(), s.Config.BrowserPref)
 						} else {
-							open.Start("http://localhost:3000/#" + ws.Path())
+							open.Start("http://localhost:11010/#" + ws.Path())
 						}
 					}
 				}

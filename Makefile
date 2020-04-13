@@ -20,6 +20,7 @@ clean:
 clobber: clean
 	rm -rf studio/node_modules	
 	rm -rf studio/shell/lib
+	rm -rf studio/shell/dist
 	rm -rf studio/shell/src-gen
 	rm -rf studio/shell/node_modules
 	rm -rf studio/shell/webpack.config.js
@@ -67,8 +68,13 @@ studio/node_modules:
 	cd studio && yarn install
 	cd studio && yarn link qmux qrpc
 
-studio/extensions/%/lib:
+studio/extensions/%/lib: studio/extensions/tractor/lib
 	cd $(shell dirname $@) && yarn build
+
+studio/extensions/tractor/lib:
+	cd studio/extensions/tractor && yarn build
+
+
 
 studio/plugins/%/lib:
 	tsc -p $@/..

@@ -22,7 +22,7 @@ func (w *Entry) Endpoint() string {
 	if w.Service == nil {
 		return ""
 	}
-	return fmt.Sprintf("ws://localhost:%d", w.Service.Port)
+	return fmt.Sprintf("ws://localhost:%d/rpc", w.Service.Port)
 }
 
 func (w *Entry) Name() string {

@@ -32,7 +32,7 @@ import * as qrpc from 'qrpc';
 const RetryInterval = 500;
 
 function scheduleRetry(fn: any) {
-	setTimeout(fn, RetryInterval);
+    setTimeout(fn, RetryInterval);
 }
 
 
@@ -61,7 +61,6 @@ export class TractorService implements WidgetFactory {
 
     protected client: qrpc.Client;
     protected api: qrpc.API;
-
 
     public editorsEndpoint: string;
     public components: any[];
@@ -98,11 +97,11 @@ export class TractorService implements WidgetFactory {
     async connectAgent() {
         this.logger.info("connecting to agent...");
         try {
-			var conn = await qmux.DialWebsocket("ws://localhost:3001/");
-		} catch (e) {
+            var conn = await qmux.DialWebsocket("ws://localhost:3001/");
+        } catch (e) {
             this.logger.warn(e);
-			scheduleRetry(() => this.connectAgent());
-			return;
+            scheduleRetry(() => this.connectAgent());
+            return;
         }
         this.logger.info("agent connected.");
         var session = new qmux.Session(conn);
@@ -115,29 +114,32 @@ export class TractorService implements WidgetFactory {
         } else {
             this.logger.error("workspace path not a known workspace");
         }
-        
+
     }
 
     async connectWorkspace(endpoint: string) {
-        this.logger.warn("connecting to workspace: "+endpoint);
-		try {
-			var conn = await qmux.DialWebsocket(endpoint);
-		} catch (e) {
+        this.logger.warn("connecting to workspace: " + endpoint);
+        try {
+            var conn = await qmux.DialWebsocket(endpoint);
+        } catch (e) {
             this.logger.warn(e);
-			scheduleRetry(() => this.connectWorkspace(endpoint));
-			return;
-		}
+            scheduleRetry(() => this.connectWorkspace(endpoint));
+            return;
+        }
         var session = new qmux.Session(conn);
         this.api = new qrpc.API();
-		this.client = new qrpc.Client(session, this.api);
-		this.api.handle("shutdown", {
-			"serveRPC": async (r, c) => {
-                scheduleRetry(() => this.connectWorkspace(endpoint));
+        this.client = new qrpc.Client(session, this.api);
+        this.api.handle("shutdown", {
+            "serveRPC": async (r, c) => {
+                this.logger.warn("reconnecting in 3s...");
+                setTimeout(() => {
+                    this.connectWorkspace(endpoint)
+                }, 3000);
                 r.return();
-			}
+            }
         });
         this.api.handle("state", {
-			"serveRPC": async (r, c) => {
+            "serveRPC": async (r, c) => {
                 var data = await c.decode();
                 //this.logger.warn(data);
                 this.components = data.components;
@@ -149,7 +151,7 @@ export class TractorService implements WidgetFactory {
                     this.onDidChangeEmitter.fire(this.widget.rootObjects());
                 }
                 r.return();
-			}
+            }
         });
         this.client.serveAPI();
         if (this.widget) {
@@ -159,7 +161,7 @@ export class TractorService implements WidgetFactory {
                 this.client.call("selectNode", node.id);
             });
         }
-		await this.client.call("subscribe");
+        await this.client.call("subscribe");
     }
 
     buildContextMenus(node: ObjectNode) {
@@ -182,30 +184,30 @@ export class TractorService implements WidgetFactory {
             });
         }
     }
-    
+
     refreshRegistries() {
         this.components.forEach((c) => {
             let id = `tractor:component-add:${c.name}`
             let label = `Add Component: ${c.name}`
 
             this.commands.unregisterCommand(id);
-            this.commands.registerCommand({id:id, label:label}, {
-                execute: () =>  {
+            this.commands.registerCommand({ id: id, label: label }, {
+                execute: () => {
                     let node = this.widget.model.selectedNodes[0];
                     if (node) {
                         this.addComponent(c.name, node.id);
                     }
                 }
             });
-            
+
         });
         this.prefabs.forEach((p) => {
             let id = `tractor:prefab-add:${p.id}`
             let label = `Load Prefab: ${p.name}`
 
             this.commands.unregisterCommand(id);
-            this.commands.registerCommand({id:id, label:label}, {
-                execute: () =>  {
+            this.commands.registerCommand({ id: id, label: label }, {
+                execute: () => {
                     let node = this.widget.model.selectedNodes[0];
                     if (node) {
                         this.loadPrefab(p.id, node.id);
@@ -216,28 +218,28 @@ export class TractorService implements WidgetFactory {
     }
 
     renameNode(id: string, name: string) {
-		this.client.call("updateNode", {
-			"ID": id,
-			"Name": name
-		});
-	}
+        this.client.call("updateNode", {
+            "ID": id,
+            "Name": name
+        });
+    }
 
     addNode(name: string, parentId?: string) {
-		this.client.call("appendNode", {"ID": parentId||"", "Name": name});
-	}
+        this.client.call("appendNode", { "ID": parentId || "", "Name": name });
+    }
 
-	deleteNode(id: string) {
-		this.client.call("deleteNode", id);
+    deleteNode(id: string) {
+        this.client.call("deleteNode", id);
     }
 
     addComponent(component: string, nodeId: string) {
-        this.client.call("appendComponent", {ID: nodeId, Name: component});
+        this.client.call("appendComponent", { ID: nodeId, Name: component });
     }
 
     loadPrefab(id: string, nodeId: string) {
-        this.client.call("loadPrefab", {ID: nodeId, Name: id});
+        this.client.call("loadPrefab", { ID: nodeId, Name: id });
     }
-    
+
 
     createWidget(): Promise<Widget> {
         this.widget = this.factory();

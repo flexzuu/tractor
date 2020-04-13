@@ -1,0 +1,10 @@
+@import url(/ui/vnd/fontawesome/css/all.min.css);
+@import url(/ui/vnd/tailwind-1.2.0.min.css);
+@import url(/ui/style/form.css);
+@import url(/ui/style/theia.css);
+
+
+html {
+    color: white;
+    background-color: var(--vscode-editorWidget-background);
+}

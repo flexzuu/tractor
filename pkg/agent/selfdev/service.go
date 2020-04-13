@@ -69,7 +69,7 @@ func (s *Service) InitializeDaemon() (err error) {
 
 	studioOut := s.Console.NewPipe("studio")
 	shellRun := &cmdService{
-		subcmd.New("yarn", "run", "theia", "start", "--log-level", "warn", "--plugins", "local-dir:../plugins/"),
+		subcmd.New("yarn", "run", "theia", "start", "--port", "11010", "--log-level", "warn"),
 	}
 	shellRun.Setup = func(cmd *exec.Cmd) error {
 		cmd.Dir = "./studio/shell"
@@ -110,27 +110,16 @@ func (s *Service) handleLoop(ctx context.Context) {
 			if filepath.Ext(event.Path) == ".ts" || filepath.Ext(event.Path) == ".tsx" {
 
 				logging.Info(s.Logger, "ts file changed, compiling...")
-				for _, plugin := range []string{"inspector"} {
-					if strings.Contains(event.Path, "/studio/plugins/"+plugin) {
-						go func() {
-							// theia plugin
-							cmd := exec.Command("tsc", "-p", "./studio/plugins/"+plugin)
-							cmd.Stdout = s.output
-							cmd.Stderr = s.output
-							cmd.Run()
-							logging.Info(s.Logger, "finished")
-						}()
-					}
-				}
 				for _, ext := range []string{"tractor", "editorview"} {
 					if strings.Contains(event.Path, "/studio/extensions/"+ext) {
 						go func() {
 							// theia extension
-							cmd := exec.Command("tsc", "-p", "./studio/extensions/"+ext)
+							cmd := exec.Command("yarn", "build")
+							cmd.Dir = "studio/extensions/" + ext
 							cmd.Stdout = s.output
 							cmd.Stderr = s.output
 							cmd.Run()
-							logging.Info(s.Logger, "finished")
+							logging.Info(s.Logger, "finished "+ext)
 						}()
 					}
 				}
