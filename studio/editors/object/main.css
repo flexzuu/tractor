@@ -1,3 +1,12 @@
+@import url(/views/ui/vnd/fontawesome/css/all.min.css);
+@import url(/views/ui/vnd/tailwind-1.2.0.min.css);
+@import url(/views/ui/style/form.css);
+@import url(/views/ui/style/theia.css);
+
+
 html {
-    color: white;
+    color: #cccccc;
+    background-color: var(--vscode-editorWidget-background);
+    zoom: 0.8;
 }
+

@@ -36,6 +36,7 @@ type Component struct {
 	Fields   []Field  `msgpack:"fields"`
 	Buttons  []Button `msgpack:"buttons"`
 	Related  []string `msgpack:"related"`
+	CustomUI *Element `msgpack:"customUI"`
 }
 
 type Node struct {
@@ -76,6 +77,18 @@ type State struct {
 
 	mu sync.Mutex
 }
+
+type Element struct {
+	Name     string
+	Attrs    Attrs
+	Children []Element
+}
+
+func El(name string, attrs Attrs, children []Element) Element {
+	return Element{name, attrs, children}
+}
+
+type Attrs map[string]string
 
 func exportElem(v reflected.Value, path string, idx int, n manifold.Object) (Field, bool) {
 	elemPath := path + "/" + strconv.Itoa(idx)
@@ -245,6 +258,10 @@ type ButtonProvider interface {
 	InspectorButtons() []Button
 }
 
+type UIProvider interface {
+	InspectorUI() Element
+}
+
 func (s *State) Update(root manifold.Object) {
 	// reset/clear nodes
 	s.Hierarchy = []string{}
@@ -274,6 +291,13 @@ func (s *State) Update(root manifold.Object) {
 					continue
 				}
 				fields = append(fields, exportField(c, field, path, n))
+			}
+			// see if component provides custom ui
+			var ui *Element
+			uip, ok := com.Pointer().(UIProvider)
+			if ok {
+				v := uip.InspectorUI()
+				ui = &v
 			}
 			// see if the component provides buttons
 			var buttons []Button
@@ -327,6 +351,7 @@ func (s *State) Update(root manifold.Object) {
 				Fields:   fields,
 				Buttons:  buttons,
 				Related:  related,
+				CustomUI: ui,
 			})
 		}
 		// add the node to state

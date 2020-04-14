@@ -38,7 +38,7 @@ require (
 	github.com/nickvanw/ircx/v2 v2.0.0
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 // indirect
-	github.com/progrium/hotweb v0.0.0-20200402223854-7142ba177f65
+	github.com/progrium/hotweb v0.0.0-20200412231111-aad2cd63fd5a
 	github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rjeczalik/notify v0.9.2 // indirect
@@ -54,7 +54,7 @@ require (
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/sorcix/irc.v2 v2.0.0-20190306112350-8d7a73540b90

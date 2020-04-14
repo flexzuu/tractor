@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,6 +92,12 @@ func New(path string, name string, output io.WriteCloser) *Supervisor {
 	if name == "" {
 		name = filepath.Base(path)
 	}
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(err)
+	}
+	addr := l.Addr().String()
+	l.Close()
 	return &Supervisor{
 		name:       name,
 		path:       path,
@@ -98,7 +105,7 @@ func New(path string, name string, output io.WriteCloser) *Supervisor {
 		Output:     output,
 		GoBin:      "go",
 		DaemonBin:  filepath.Join(path, name),
-		DaemonArgs: []string{},
+		DaemonArgs: []string{"-addr", addr},
 	}
 }
 

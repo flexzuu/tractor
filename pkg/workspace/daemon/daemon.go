@@ -22,7 +22,6 @@ import (
 
 var (
 	addr = flag.String("addr", "localhost:0", "server listener address")
-	// proto = flag.String("proto", "websocket", "server listener protocol")
 )
 
 func init() {
@@ -63,17 +62,21 @@ func Run() {
 	defer undoRedirect()
 
 	rpcSvc := &rpc.Service{
-		// Protocol:   *proto,
-		ListenAddr: *addr,
-		Log:        logger,
-		Output:     buf,
+		Log:    logger,
+		Output: buf,
 	}
 
+	// not sure why rpc service needs to ALWAYS be
+	// in object registry. pls find out
 	object.RegistryPreloader = func(o manifold.Object) []interface{} {
 		return []interface{}{o, rpcSvc}
 	}
 
 	dm := daemon.New([]daemon.Service{
+		&Service{
+			ListenAddr: *addr,
+			Log:        logger,
+		},
 		&state.Service{
 			Log: logger,
 		},

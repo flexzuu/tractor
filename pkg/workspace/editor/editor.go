@@ -2,8 +2,6 @@ package editor
 
 import (
 	"context"
-	"log"
-	"net"
 	"net/http"
 	"os"
 
@@ -15,41 +13,39 @@ import (
 )
 
 type Service struct {
-	//EditorsFs  afero.Fs
-
 	Log logging.Logger
 
-	l  net.Listener
-	s  *http.Server
 	hw *hotweb.Handler
 }
 
 func (s *Service) InitializeDaemon() (err error) {
-	s.l, err = net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return err
-	}
-
-	var fs afero.Fs = bindatafs.NewFs(editors.MustAsset, editors.AssetInfo, editors.AssetNames)
+	var fs afero.Fs = bindatafs.NewFs(
+		editors.MustAsset,
+		editors.AssetInfo,
+		editors.AssetNames,
+	)
 	if os.Getenv("TRACTOR_SRC") != "" {
 		s.Log.Debugf("using source at %s", os.Getenv("TRACTOR_SRC"))
 		fs = afero.NewBasePathFs(afero.NewOsFs(), os.Getenv("TRACTOR_SRC"))
 	}
-	s.hw = hotweb.New(fs, "studio/editors")
-	s.s = &http.Server{
-		Handler: s.hw,
-	}
+	s.hw = hotweb.New(fs, "studio/editors", "/views")
 	return nil
 }
 
+func (s *Service) MatchHTTP(r *http.Request) bool {
+	return s.hw.MatchHTTP(r)
+}
+
+func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.hw.ServeHTTP(w, r)
+}
+
+// DELETE ME
+// see also frontend session state
 func (s *Service) Endpoint() string {
-	return s.l.Addr().String()
+	return "localhost:11000"
 }
 
 func (s *Service) Serve(ctx context.Context) {
-	go func() {
-		s.Log.Error(s.hw.Watch())
-	}()
-	s.Log.Debugf("editors listening at %s", s.l.Addr().String())
-	log.Fatal(s.s.Serve(s.l))
+	s.Log.Error(s.hw.Watch())
 }
