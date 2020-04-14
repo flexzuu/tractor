@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -111,11 +112,12 @@ func (s *Service) Serve(ctx context.Context) {
 					break
 				}
 				for _, ws := range workspaces {
+					wsurl := fmt.Sprintf("http://localhost:%d/#%s", ws.Service.Port, ws.Path())
 					if ws.Name() == msg.Item.Title {
 						if s.Config.BrowserPref != "" {
-							open.StartWith("http://localhost:11010/#"+ws.Path(), s.Config.BrowserPref)
+							open.StartWith(wsurl, s.Config.BrowserPref)
 						} else {
-							open.Start("http://localhost:11010/#" + ws.Path())
+							open.Start(wsurl)
 						}
 					}
 				}
