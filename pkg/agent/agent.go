@@ -77,6 +77,7 @@ func (a *Agent) InitializeDaemon() (err error) {
 	defer a.mu.Unlock()
 	for _, space := range spaces {
 		sup := supervisor.New(space.Path, space.Name, a.Console.NewPipe("@"+space.Name))
+		sup.WatchInterval = a.Config.DevWatchInterval()
 		a.workspaces = append(a.workspaces, &workspace.Entry{
 			Config:     space,
 			Supervisor: sup,
@@ -103,7 +104,9 @@ func (a *Agent) DaemonServices() []daemon.Service {
 	}
 	if a.DevMode {
 		services = append(services, []daemon.Service{
-			&selfdev.Service{},
+			&selfdev.Service{
+				Config: a.Config,
+			},
 		}...)
 	}
 	return services

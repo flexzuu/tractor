@@ -66,12 +66,13 @@ func watcherFilter(info os.FileInfo, fullPath string) error {
 // inputs: path, bin path, console writer, logger, watch interval
 // roles: manage process, alert observers, watch for changes to recompile and restart process
 type Supervisor struct {
-	Output     io.WriteCloser
-	Log        L.Logger
-	DaemonArgs []string
-	DaemonEnv  []string
-	DaemonBin  string // absolute path to compiled binary (~/.tractor/bin/{name})
-	GoBin      string
+	Output        io.WriteCloser
+	Log           L.Logger
+	DaemonArgs    []string
+	DaemonEnv     []string
+	DaemonBin     string // absolute path to compiled binary (~/.tractor/bin/{name})
+	GoBin         string
+	WatchInterval time.Duration
 
 	name string
 	path string
@@ -99,13 +100,14 @@ func New(path string, name string, output io.WriteCloser) *Supervisor {
 	addr := l.Addr().String()
 	l.Close()
 	return &Supervisor{
-		name:       name,
-		path:       path,
-		status:     StatusPartially,
-		Output:     output,
-		GoBin:      "go",
-		DaemonBin:  filepath.Join(path, name),
-		DaemonArgs: []string{"-addr", addr},
+		name:          name,
+		path:          path,
+		status:        StatusPartially,
+		Output:        output,
+		GoBin:         "go",
+		DaemonBin:     filepath.Join(path, name),
+		DaemonArgs:    []string{"-addr", addr},
+		WatchInterval: WatchInterval,
 	}
 }
 
@@ -196,13 +198,13 @@ func (s *Supervisor) Serve(ctx context.Context) {
 
 	go s.handleWatcher(ctx)
 
-	if err := s.watcher.Start(WatchInterval); err != nil {
+	if err := s.watcher.Start(s.WatchInterval); err != nil {
 		s.Log.Error("watcher error:", err)
 	}
 }
 
 func (s *Supervisor) handleWatcher(ctx context.Context) {
-	debounce := debouncer.New(WatchInterval)
+	debounce := debouncer.New(s.WatchInterval)
 	for {
 		select {
 		case <-ctx.Done():
