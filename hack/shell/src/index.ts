@@ -18,7 +18,7 @@ import {
 } from '@lumino/messaging';
 
 import {
-    BoxPanel, CommandPalette, ContextMenu, DockPanel, Menu, MenuBar, Widget
+    BoxPanel, SplitPanel, BoxLayout, DockPanel, Menu, MenuBar, Widget, TabBar, StackedPanel, TabPanel
 } from '@lumino/widgets';
 
 import '../style/index.css';
@@ -27,40 +27,56 @@ import '../style/index.css';
 const commands = new CommandRegistry();
 
 
-function createMenu(): Menu {
-    let sub1 = new Menu({ commands });
-    sub1.title.label = 'More...';
-    sub1.title.mnemonic = 0;
-    sub1.addItem({ command: 'example:one' });
-    sub1.addItem({ command: 'example:two' });
-    sub1.addItem({ command: 'example:three' });
-    sub1.addItem({ command: 'example:four' });
 
-    let sub2 = new Menu({ commands });
-    sub2.title.label = 'More...';
-    sub2.title.mnemonic = 0;
-    sub2.addItem({ command: 'example:one' });
-    sub2.addItem({ command: 'example:two' });
-    sub2.addItem({ command: 'example:three' });
-    sub2.addItem({ command: 'example:four' });
-    sub2.addItem({ type: 'submenu', submenu: sub1 });
+class SideBar extends BoxPanel {
 
-    let root = new Menu({ commands });
-    root.addItem({ command: 'example:copy' });
-    root.addItem({ command: 'example:cut' });
-    root.addItem({ command: 'example:paste' });
-    root.addItem({ type: 'separator' });
-    root.addItem({ command: 'example:new-tab' });
-    root.addItem({ command: 'example:close-tab' });
-    root.addItem({ command: 'example:save-on-exit' });
-    root.addItem({ type: 'separator' });
-    root.addItem({ command: 'example:open-task-manager' });
-    root.addItem({ type: 'separator' });
-    root.addItem({ type: 'submenu', submenu: sub2 });
-    root.addItem({ type: 'separator' });
-    root.addItem({ command: 'example:close' });
+    dock: DockPanel;
+    bar: BoxPanel;
 
-    return root;
+    constructor() {
+        super({ "direction": "left-to-right" });
+        this.title.closable = true;
+
+        // dockpanel has tabs but are hidden in single-document
+        this.dock = new DockPanel({ 'mode': 'single-document' });
+
+        // TODO: listen for signals about dropping new tabs, 
+        // since they need to be added via this.addWidget to get
+        // added to the bar as well
+
+        // bar visualizes and drives the tabs for this.dock
+        this.bar = new BoxPanel();
+
+
+        BoxPanel.setStretch(this.bar, 1);
+        BoxPanel.setStretch(this.dock, 5);
+
+        super.addWidget(this.bar);
+        super.addWidget(this.dock);
+    }
+
+    addWidget(w: Widget) {
+        this.dock.addWidget(w);
+        let icon = new IconWidget("fa fa-cog fa-2x");
+        this.bar.addWidget(icon);
+    }
+
+}
+
+
+class IconWidget extends Widget {
+
+    static createNode(name: string): HTMLElement {
+        let node = document.createElement('div');
+        node.className = name;
+        return node;
+    }
+
+    constructor(name: string) {
+        super({ node: IconWidget.createNode(name) });
+        this.title.label = name;
+    }
+
 }
 
 
@@ -100,175 +116,66 @@ class ContentWidget extends Widget {
 
 function main(): void {
 
-    commands.addCommand('example:cut', {
-        label: 'Cut',
-        mnemonic: 1,
-        iconClass: 'fa fa-cut',
-        execute: () => {
-            console.log('Cut');
-        }
-    });
+    let bar = setupMenuBar();
 
-    commands.addCommand('example:copy', {
-        label: 'Copy File',
-        mnemonic: 0,
-        iconClass: 'fa fa-copy',
-        execute: () => {
-            console.log('Copy');
-        }
-    });
+    let r1 = new ContentWidget('Red');
+    let b1 = new ContentWidget('Blue');
+    let g1 = new ContentWidget('Green');
+    let y1 = new ContentWidget('Yellow');
 
-    commands.addCommand('example:paste', {
-        label: 'Paste',
-        mnemonic: 0,
-        iconClass: 'fa fa-paste',
-        execute: () => {
-            console.log('Paste');
-        }
-    });
 
-    commands.addCommand('example:new-tab', {
-        label: 'New Tab',
-        mnemonic: 0,
-        caption: 'Open a new tab',
-        execute: () => {
-            console.log('New Tab');
-        }
-    });
+    let mainArea = new DockPanel();
+    mainArea.addWidget(r1);
 
-    commands.addCommand('example:close-tab', {
-        label: 'Close Tab',
-        mnemonic: 2,
-        caption: 'Close the current tab',
-        execute: () => {
-            console.log('Close Tab');
-        }
-    });
+    let leftArea = new SideBar();
+    leftArea.addWidget(b1);
+    leftArea.addWidget(g1);
 
-    commands.addCommand('example:save-on-exit', {
-        label: 'Save on Exit',
-        mnemonic: 0,
-        caption: 'Toggle the save on exit flag',
-        execute: () => {
-            console.log('Save on Exit');
-        }
-    });
+    SplitPanel.setStretch(leftArea, 1);
+    SplitPanel.setStretch(mainArea, 5);
+    // SplitPanel.setStretch(rightArea, 1);
 
-    commands.addCommand('example:open-task-manager', {
-        label: 'Task Manager',
-        mnemonic: 5,
-        isEnabled: () => false,
-        execute: () => { }
-    });
+    let main = new SplitPanel({ spacing: 0 });
+    main.id = 'main';
+    main.addWidget(leftArea);
+    main.addWidget(mainArea);
+    // main.addWidget(rightArea);
 
-    commands.addCommand('example:close', {
-        label: 'Close',
-        mnemonic: 0,
-        iconClass: 'fa fa-close',
-        execute: () => {
-            console.log('Close');
-        }
-    });
+    window.onresize = () => { main.update(); };
 
-    commands.addCommand('example:one', {
-        label: 'One',
-        execute: () => {
-            console.log('One');
-        }
-    });
+    Widget.attach(bar, document.body);
+    Widget.attach(main, document.body);
+}
 
-    commands.addCommand('example:two', {
-        label: 'Two',
-        execute: () => {
-            console.log('Two');
-        }
-    });
 
-    commands.addCommand('example:three', {
-        label: 'Three',
-        execute: () => {
-            console.log('Three');
-        }
-    });
+window.onload = main;
 
-    commands.addCommand('example:four', {
-        label: 'Four',
-        execute: () => {
-            console.log('Four');
-        }
-    });
 
-    commands.addCommand('example:black', {
-        label: 'Black',
-        execute: () => {
-            console.log('Black');
-        }
-    });
+function createMenu(): Menu {
+    let sub1 = new Menu({ commands });
+    sub1.title.label = 'More...';
+    sub1.title.mnemonic = 0;
+    sub1.addItem({ command: 'example:one' });
+    sub1.addItem({ command: 'example:two' });
+    sub1.addItem({ command: 'example:three' });
+    sub1.addItem({ command: 'example:four' });
 
-    commands.addCommand('example:clear-cell', {
-        label: 'Clear Cell',
-        execute: () => {
-            console.log('Clear Cell');
-        }
-    });
+    let sub2 = new Menu({ commands });
+    sub2.title.label = 'More...';
+    sub2.title.mnemonic = 0;
+    sub2.addItem({ command: 'example:one' });
+    sub2.addItem({ command: 'example:two' });
+    sub2.addItem({ command: 'example:three' });
+    sub2.addItem({ command: 'example:four' });
+    sub2.addItem({ type: 'submenu', submenu: sub1 });
 
-    commands.addCommand('example:cut-cells', {
-        label: 'Cut Cell(s)',
-        execute: () => {
-            console.log('Cut Cell(s)');
-        }
-    });
+    let root = new Menu({ commands });
+    root.addItem({ type: 'submenu', submenu: sub2 });
 
-    commands.addCommand('example:run-cell', {
-        label: 'Run Cell',
-        execute: () => {
-            console.log('Run Cell');
-        }
-    });
+    return root;
+}
 
-    commands.addCommand('example:cell-test', {
-        label: 'Cell Test',
-        execute: () => {
-            console.log('Cell Test');
-        }
-    });
-
-    commands.addCommand('notebook:new', {
-        label: 'New Notebook',
-        execute: () => {
-            console.log('New Notebook');
-        }
-    });
-
-    commands.addKeyBinding({
-        keys: ['Accel X'],
-        selector: 'body',
-        command: 'example:cut'
-    });
-
-    commands.addKeyBinding({
-        keys: ['Accel C'],
-        selector: 'body',
-        command: 'example:copy'
-    });
-
-    commands.addKeyBinding({
-        keys: ['Accel V'],
-        selector: 'body',
-        command: 'example:paste'
-    });
-
-    commands.addKeyBinding({
-        keys: ['Accel J', 'Accel J'],
-        selector: 'body',
-        command: 'example:new-tab'
-    });
-
-    commands.addKeyBinding({
-        keys: ['Accel M'],
-        selector: 'body',
-        command: 'example:open-task-manager'
-    });
+function setupMenuBar() {
 
     let menu1 = createMenu();
     menu1.title.label = 'File';
@@ -288,121 +195,5 @@ function main(): void {
     bar.addMenu(menu3);
     bar.id = 'menuBar';
 
-    let palette = new CommandPalette({ commands });
-    palette.addItem({ command: 'example:cut', category: 'Edit' });
-    palette.addItem({ command: 'example:copy', category: 'Edit' });
-    palette.addItem({ command: 'example:paste', category: 'Edit' });
-    palette.addItem({ command: 'example:one', category: 'Number' });
-    palette.addItem({ command: 'example:two', category: 'Number' });
-    palette.addItem({ command: 'example:three', category: 'Number' });
-    palette.addItem({ command: 'example:four', category: 'Number' });
-    palette.addItem({ command: 'example:black', category: 'Number' });
-    palette.addItem({ command: 'example:new-tab', category: 'File' });
-    palette.addItem({ command: 'example:close-tab', category: 'File' });
-    palette.addItem({ command: 'example:save-on-exit', category: 'File' });
-    palette.addItem({ command: 'example:open-task-manager', category: 'File' });
-    palette.addItem({ command: 'example:close', category: 'File' });
-    palette.addItem({ command: 'example:clear-cell', category: 'Notebook Cell Operations' });
-    palette.addItem({ command: 'example:cut-cells', category: 'Notebook Cell Operations' });
-    palette.addItem({ command: 'example:run-cell', category: 'Notebook Cell Operations' });
-    palette.addItem({ command: 'example:cell-test', category: 'Console' });
-    palette.addItem({ command: 'notebook:new', category: 'Notebook' });
-    palette.id = 'palette';
-
-    let contextMenu = new ContextMenu({ commands });
-
-    document.addEventListener('contextmenu', (event: MouseEvent) => {
-        if (contextMenu.open(event)) {
-            event.preventDefault();
-        }
-    });
-
-    contextMenu.addItem({ command: 'example:cut', selector: '.content' });
-    contextMenu.addItem({ command: 'example:copy', selector: '.content' });
-    contextMenu.addItem({ command: 'example:paste', selector: '.content' });
-
-    contextMenu.addItem({ command: 'example:one', selector: '.lm-CommandPalette' });
-    contextMenu.addItem({ command: 'example:two', selector: '.lm-CommandPalette' });
-    contextMenu.addItem({ command: 'example:three', selector: '.lm-CommandPalette' });
-    contextMenu.addItem({ command: 'example:four', selector: '.lm-CommandPalette' });
-    contextMenu.addItem({ command: 'example:black', selector: '.lm-CommandPalette' });
-
-    contextMenu.addItem({ command: 'notebook:new', selector: '.lm-CommandPalette-input' });
-    contextMenu.addItem({ command: 'example:save-on-exit', selector: '.lm-CommandPalette-input' });
-    contextMenu.addItem({ command: 'example:open-task-manager', selector: '.lm-CommandPalette-input' });
-    contextMenu.addItem({ type: 'separator', selector: '.lm-CommandPalette-input' });
-
-    document.addEventListener('keydown', (event: KeyboardEvent) => {
-        commands.processKeydownEvent(event);
-    });
-
-    let r1 = new ContentWidget('Red');
-    let b1 = new ContentWidget('Blue');
-    let g1 = new ContentWidget('Green');
-    let y1 = new ContentWidget('Yellow');
-
-    let r2 = new ContentWidget('Red');
-    let b2 = new ContentWidget('Blue');
-    let g2 = new ContentWidget('Green');
-    let y2 = new ContentWidget('Yellow');
-
-    let dock = new DockPanel();
-    dock.addWidget(r1);
-    dock.addWidget(b1, { mode: 'split-right', ref: r1 });
-    dock.addWidget(y1, { mode: 'split-bottom', ref: b1 });
-    dock.addWidget(g1, { mode: 'split-left', ref: y1 });
-    dock.addWidget(r2, { ref: b1 });
-    dock.addWidget(b2, { mode: 'split-right', ref: y1 });
-    dock.id = 'dock';
-
-    let dock2 = new DockPanel();
-    dock.addWidget(g2);
-    dock.addWidget(y2, { mode: 'split-right', ref: g2 });
-    dock.id = "dock2";
-
-    let savedLayouts: DockPanel.ILayoutConfig[] = [];
-
-    commands.addCommand('save-dock-layout', {
-        label: 'Save Layout',
-        caption: 'Save the current dock layout',
-        execute: () => {
-            console.log(savedLayouts);
-            savedLayouts.push(dock.saveLayout());
-            palette.addItem({
-                command: 'restore-dock-layout',
-                category: 'Dock Layout',
-                args: { index: savedLayouts.length - 1 }
-            });
-        }
-    });
-
-    commands.addCommand('restore-dock-layout', {
-        label: args => {
-            return `Restore Layout ${args.index as number}`;
-        },
-        execute: args => {
-            dock.restoreLayout(savedLayouts[args.index as number]);
-        }
-    });
-
-    palette.addItem({
-        command: 'save-dock-layout',
-        category: 'Dock Layout',
-        rank: 0
-    });
-
-    BoxPanel.setStretch(dock, 1);
-
-    let main = new BoxPanel({ direction: 'left-to-right', spacing: 0 });
-    main.id = 'main';
-    main.addWidget(dock2);
-    main.addWidget(dock);
-
-    window.onresize = () => { main.update(); };
-
-    Widget.attach(bar, document.body);
-    Widget.attach(main, document.body);
+    return bar;
 }
-
-
-window.onload = main;

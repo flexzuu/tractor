@@ -14,6 +14,9 @@ body {
     overflow: hidden;
   }
   
+  .sidebar {
+    width: 40px !important;
+  }
   
   #menuBar {
     flex: 0 0 auto;
@@ -24,16 +27,7 @@ body {
     flex: 1 1 auto;
   }
   
-  
-  #palette {
-    min-width: 300px;
-    border-right: 1px solid #DDDDDD;
-  }
-  
-  
-  #dock {
-    padding: 4px;
-  }
+
 
   
 
