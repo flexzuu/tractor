@@ -204,7 +204,7 @@ func (s *Supervisor) Serve(ctx context.Context) {
 }
 
 func (s *Supervisor) handleWatcher(ctx context.Context) {
-	debounce := debouncer.New(s.WatchInterval)
+	debounce := debouncer.New(WatchInterval)
 	for {
 		select {
 		case <-ctx.Done():
