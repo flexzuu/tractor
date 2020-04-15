@@ -1,6 +1,6 @@
 {
   "name": "tractor-shell",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Tractor Studio",
   "main": "src-gen/frontend/electron-main.js",
   "private": true,
