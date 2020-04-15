@@ -10,21 +10,20 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/manifold/tractor/pkg/agent/console"
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/misc/daemon"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/misc/subcmd"
 	"github.com/radovskyb/watcher"
 )
 
-const WatchInterval = time.Millisecond * 50
-
 type Service struct {
 	Daemon  *daemon.Daemon
 	Logger  logging.Logger
 	Console *console.Service
+	Config  *config.Config
 
 	watcher *watcher.Watcher
 	output  io.WriteCloser
@@ -89,7 +88,7 @@ func (s *Service) TerminateDaemon() error {
 
 func (s *Service) Serve(ctx context.Context) {
 	go s.handleLoop(ctx)
-	if err := s.watcher.Start(WatchInterval); err != nil {
+	if err := s.watcher.Start(s.Config.DevWatchInterval()); err != nil {
 		logging.Error(s.Logger, err)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/manifold/qtalk/golang/mux"
@@ -15,6 +16,17 @@ import (
 const HomeDir = ".tractor"
 const FileName = "config.toml"
 const WorkspaceFile = "tractor.go"
+
+// Duration wraps time.Duration to parse from TOML configs.
+type Duration struct {
+	time.Duration
+}
+
+func (d *Duration) UnmarshalText(text []byte) error {
+	var err error
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
+}
 
 // ParseFile parses the given toml file into a Config.
 func ParseFile(path string, cfg *Config) error {
@@ -54,6 +66,7 @@ type Config struct {
 	BinDir        string // ~/.tractor/bin
 	GoBin         string
 	BrowserPref   string
+	DevWatch      Duration `toml:"DevWatchInterval"` // time duration: "50ms", prefer DevWatchInterval() for usage
 }
 
 func Open(dir string) (*Config, error) {
@@ -91,8 +104,11 @@ func baseConfig(dir string) *Config {
 		WorkspacesDir: filepath.Join(dir, "workspaces"),
 		BinDir:        filepath.Join(dir, "bin"),
 		GoBin:         bin,
+		DevWatch:      Duration{Duration: defaultDevInterval},
 	}
 }
+
+var defaultDevInterval = time.Millisecond * 100
 
 func (cfg *Config) resolveWorkspaceSymlink(fi os.FileInfo) (bool, string, error) {
 	if fi.IsDir() {
@@ -115,6 +131,13 @@ func (cfg *Config) resolveWorkspaceSymlink(fi os.FileInfo) (bool, string, error)
 	}
 
 	return rfi.IsDir(), resolved, nil
+}
+
+func (cfg *Config) DevWatchInterval() time.Duration {
+	if cfg == nil {
+		return defaultDevInterval
+	}
+	return cfg.DevWatch.Duration
 }
 
 func (cfg *Config) AddWorkspace(path string) (string, error) {

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Schobers/bindatafs"
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/data/editors"
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/progrium/hotweb/pkg/hotweb"
@@ -13,7 +14,8 @@ import (
 )
 
 type Service struct {
-	Log logging.Logger
+	Log    logging.Logger
+	Config *config.Config
 
 	hw *hotweb.Handler
 }
@@ -29,6 +31,7 @@ func (s *Service) InitializeDaemon() (err error) {
 		fs = afero.NewBasePathFs(afero.NewOsFs(), os.Getenv("TRACTOR_SRC"))
 	}
 	s.hw = hotweb.New(fs, "studio/editors", "/views")
+	s.hw.WatchInterval = s.Config.DevWatchInterval()
 	return nil
 }
 
