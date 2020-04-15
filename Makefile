@@ -1,6 +1,6 @@
 .PHONY: build setup clean clobber dev versions studio kill qtalk data
 
-build: clean local/bin/tractor-agent local/bin/tractor studio/plugins/*/lib
+build: clean local/bin/tractor-agent local/bin/tractor 
 
 setup: local/workspace local/bin qtalk studio
 	make build
