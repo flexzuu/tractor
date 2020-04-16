@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/manifold/tractor/pkg/config"
 	"github.com/manifold/tractor/pkg/manifold"
 	"github.com/manifold/tractor/pkg/manifold/object"
 	"github.com/manifold/tractor/pkg/misc/buffer"
@@ -53,6 +54,11 @@ func captureOutput(size int64) (*buffer.Buffer, func()) {
 }
 
 func Run() {
+	cfg, err := config.OpenDefault()
+	if err != nil {
+		panic(err)
+	}
+
 	flag.Parse()
 
 	buf, undoCapture := captureOutput(1024 * 1024)
@@ -85,7 +91,8 @@ func Run() {
 			Log: logger,
 		},
 		&editor.Service{
-			Log: logger,
+			Log:    logger,
+			Config: cfg,
 		},
 	}...)
 
