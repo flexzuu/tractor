@@ -1,5 +1,5 @@
 import { injectable, inject } from 'inversify';
-import { MenuModelRegistry } from '@theia/core';
+import { MenuModelRegistry, ILogger } from '@theia/core';
 import { EditorViewWidget } from './editorview-widget';
 import { EditorTypes } from './editorviews';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
@@ -7,6 +7,8 @@ import { AbstractViewContribution } from '@theia/core/lib/browser';
 import { CommandRegistry } from '@theia/core/lib/common/command';
 import { WidgetManager } from '@theia/core/lib/browser/widget-manager';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
+import { OpenerService } from '@theia/core/lib/browser/opener-service';
+import URI from '@theia/core/lib/common/uri';
 
 @injectable()
 export class EditorViewContribution extends AbstractViewContribution<EditorViewWidget> {
@@ -16,6 +18,12 @@ export class EditorViewContribution extends AbstractViewContribution<EditorViewW
 
     @inject(ApplicationShell)
     protected readonly shell: ApplicationShell;
+
+    @inject(ILogger)
+    protected readonly logger: ILogger;
+
+    @inject(OpenerService)
+    protected readonly openerService: OpenerService;
 
     /**
      * `AbstractViewContribution` handles the creation and registering
@@ -30,6 +38,27 @@ export class EditorViewContribution extends AbstractViewContribution<EditorViewW
             widgetId: EditorViewWidget.FACTORY_ID,
             widgetName: "EditorView",
             defaultWidgetOptions: { area: 'main' },
+        });
+    }
+
+
+    onStart(app: any): void {
+        window.addEventListener("message", async (e) => {
+            let message = e.data;
+            if (message.event) {
+                switch (message.event) {
+                    case 'edit':
+                        if (message.path !== undefined) {
+                            const uriArg = new URI(`file://${message.path}`);
+                            const opener = await this.openerService.getOpener(uriArg, {});
+                            await opener.open(uriArg, {});
+                            return;
+                        }
+                        return;
+
+                }
+
+            }
         });
     }
 
@@ -53,10 +82,10 @@ export class EditorViewContribution extends AbstractViewContribution<EditorViewW
      */
     registerCommands(commands: CommandRegistry): void {
         EditorTypes.forEach((editor) => {
-            commands.registerCommand({id: 'editor:'+editor.name, label: editor.label }, {
+            commands.registerCommand({ id: 'editor:' + editor.name, label: "Show: " + editor.label }, {
                 execute: async () => {
                     const widget = await this.widgets.getOrCreateWidget<EditorViewWidget>("editorview", editor);
-                    this.shell.addWidget(widget, <ApplicationShell.WidgetOptions>{'area': editor.area});
+                    this.shell.addWidget(widget, <ApplicationShell.WidgetOptions>{ 'area': editor.area });
                     this.shell.revealWidget(widget.id);
                 }
             });
@@ -80,10 +109,10 @@ export class EditorViewContribution extends AbstractViewContribution<EditorViewW
     registerMenus(menus: MenuModelRegistry): void {
         EditorTypes.forEach((editor) => {
             menus.registerMenuAction(CommonMenus.VIEW_VIEWS, {
-                commandId: 'editor:'+editor.name,
+                commandId: 'editor:' + editor.name,
                 label: editor.label
             });
         });
-        
+
     }
 }

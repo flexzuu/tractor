@@ -131,6 +131,8 @@ github.com/progrium/esbuild v0.0.0-20200327212623-fae14fb26173 h1:q4QMKSrYQstPhe
 github.com/progrium/esbuild v0.0.0-20200327212623-fae14fb26173/go.mod h1:JWvqYJaHSrk+OnKTRemRXjGixls7mWM9xHwXSW5Qzro=
 github.com/progrium/hotweb v0.0.0-20200412231111-aad2cd63fd5a h1:D7SKdbU090I0YkWvmF74ZlxNwoHRLbonwE6VWz+bg8Y=
 github.com/progrium/hotweb v0.0.0-20200412231111-aad2cd63fd5a/go.mod h1:3Z54O+TR/f52l3JTYzRmySBC4Iu8gcaX8cqgSGKa/b8=
+github.com/progrium/hotweb v0.0.0-20200415224940-bc5d6e570446 h1:nUczkOJr9OtU06wPaXVc+7lr+ZBOeuYjF0sHWY39uqg=
+github.com/progrium/hotweb v0.0.0-20200415224940-bc5d6e570446/go.mod h1:3Z54O+TR/f52l3JTYzRmySBC4Iu8gcaX8cqgSGKa/b8=
 github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f h1:esGzT3SeezPzEfRlWsn4R2AMnIUxDHAKJ3zbLZ5WUoI=
 github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f/go.mod h1:6pivVnxyLfAjBPDc2cd1wGpLSFkrA3fp48N4G3IQZqs=
 github.com/progrium/watcher v1.0.8-0.20200403214642-88c0f931de38 h1:HpY7P6KAfacRCsWh+XwT4pKArLqRilfOMeLnSX423r0=

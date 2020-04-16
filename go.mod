@@ -38,7 +38,7 @@ require (
 	github.com/nickvanw/ircx/v2 v2.0.0
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942 // indirect
-	github.com/progrium/hotweb v0.0.0-20200412231111-aad2cd63fd5a
+	github.com/progrium/hotweb v0.0.0-20200415224940-bc5d6e570446
 	github.com/progrium/prototypes v0.0.0-20190807232325-d9b2b4ba3a4f
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rjeczalik/notify v0.9.2 // indirect

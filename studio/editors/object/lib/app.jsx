@@ -1,5 +1,6 @@
 import * as field from '/views/ui/lib/field.js';
 import * as atom from '/views/ui/lib/atom.js';
+import * as molecule from '/views/ui/lib/molecule.js';
 import * as form from '/views/ui/lib/form.js';
 import * as client from '/views/ui/lib/client.js';
 
@@ -36,7 +37,7 @@ export function Inspector(initial) {
                     //console.log(action, params);
                     return client.call(action, params);
                 case "edit":
-                    //window.theia.postMessage({event: 'edit', path: params.path});
+                    window.parent.postMessage({ event: 'edit', path: params.path });
                     return;
                 default:
                     throw "unknown action: " + action;
@@ -70,10 +71,36 @@ export function Inspector(initial) {
     return {
         view: function (vnode) {
             if (node) {
+                function buildMenu(component) {
+                    let send = console.log;
+                    if (window.remoteCall) {
+                        send = window.remoteCall;
+                    }
+                    return [
+                        {
+                            label: "Reload", onclick: () => {
+                                send("reloadComponent",
+                                    { ID: node.id, Component: component.name })
+                            }
+                        },
+                        {
+                            label: "Edit", onclick: () => {
+                                send("edit", { path: component.filepath })
+                            }
+                        },
+                        {
+                            label: "Remove", onclick: () => {
+                                send("removeComponent",
+                                    { ID: node.id, Component: component.name })
+                            }
+                        },
+                    ];
+                }
+
                 return <section class="">
                     <ObjectHeader node={node} />
                     {node.components.map((c) => {
-                        return m(field.ComponentPanel, { label: c.name }, (c.customUI) ?
+                        return m(field.ComponentPanel, { label: c.name, menu: buildMenu(c) }, (c.customUI) ?
                             m(CustomUI, { spec: c.customUI }) :
                             (c.fields || []).map((f, idx) =>
                                 m(field.ComponentField, { key: idx, field: f }))

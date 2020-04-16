@@ -168,3 +168,7 @@ input[type=date]::-webkit-calendar-picker-indicator {
   color: #a0aec0;
   margin-left: 0.25rem;
 }
+
+.Menu li:hover {
+  background: #252525;
+}
