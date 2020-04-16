@@ -14,22 +14,26 @@ export function Expander(initial) {
 
 export function DropdownMenu(initial) {
     let opened = initial.attrs.opened || false;
+
+    function toggle(e) {
+        if (opened) {
+            opened = false;
+            return;
+        }
+
+        opened = true
+        e.stopPropagation();
+        document.body.addEventListener("click", clickoff);
+    }
+
+    function clickoff() {
+        opened = false;
+        m.redraw();
+        document.body.removeEventListener("click", clickoff);
+    }
+
     return {
         view: function (vnode) {
-            function toggle(e) {
-                if (opened) {
-                    opened = false;
-                } else {
-                    opened = true;
-                    function clickoff() {
-                        opened = false;
-                        m.redraw();
-                        document.body.removeEventListener("click", clickoff);
-                    }
-                    e.stopPropagation();
-                    document.body.addEventListener("click", clickoff);
-                }
-            }
             return <div class="DropdownMenu" onclick={toggle}>
                 {vnode.children}
                 {opened && <Menu class={vnode.attrs.class} items={vnode.attrs.items} />}
