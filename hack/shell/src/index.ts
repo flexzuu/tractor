@@ -18,18 +18,99 @@ import {
 } from '@lumino/messaging';
 
 import {
-    BoxPanel, SplitPanel, BoxLayout, DockPanel, Menu, MenuBar, Widget, TabBar, StackedPanel, TabPanel
+    BoxPanel, DockPanel, Menu, MenuBar, Panel, SplitPanel, Widget
 } from '@lumino/widgets';
 
 import '../style/index.css';
 
+window.onload = () => {
+    Widget.attach(new Shell(), document.body)
+};
 
-const commands = new CommandRegistry();
+class Shell extends Panel {
+    commands: CommandRegistry;
+    menu: MenuBar
+    main: SplitPanel
+    mainArea: DockPanel
+    leftArea: SideBar
 
+    constructor() {
+        super()
 
+        this.commands = new CommandRegistry();
+        this.menu = this.setupMenuBar();
+
+        this.mainArea = new DockPanel();
+        this.mainArea.addWidget(new ContentWidget('Red'))
+
+        this.leftArea = new SideBar();
+        this.leftArea.addWidget(new ContentWidget('Blue'))
+        this.leftArea.addWidget(new ContentWidget('Green'))
+
+        SplitPanel.setStretch(this.leftArea, 1);
+        SplitPanel.setStretch(this.mainArea, 5);
+
+        this.main = new SplitPanel({ spacing: 0 });
+        this.main.id = 'main';
+        this.main.addWidget(this.leftArea);
+        this.main.addWidget(this.mainArea);
+
+        this.addWidget(this.menu)
+        this.addWidget(this.main)
+    }
+
+    onAfterAttach(msg: Message) {
+        window.onresize = () => this.main.update;
+    }
+
+    setupMenuBar(): MenuBar {
+        let menu1 = this.createMenu();
+        menu1.title.label = 'File';
+        menu1.title.mnemonic = 0;
+
+        let menu2 = this.createMenu();
+        menu2.title.label = 'Edit';
+        menu2.title.mnemonic = 0;
+
+        let menu3 = this.createMenu();
+        menu3.title.label = 'View';
+        menu3.title.mnemonic = 0;
+
+        let bar = new MenuBar();
+        bar.addMenu(menu1);
+        bar.addMenu(menu2);
+        bar.addMenu(menu3);
+        bar.id = 'menuBar';
+
+        return bar;
+    }
+
+    createMenu(): Menu {
+        let sub1 = new Menu({ commands: this.commands });
+        sub1.title.label = 'More...';
+        sub1.title.mnemonic = 0;
+        sub1.addItem({ command: 'example:one' });
+        sub1.addItem({ command: 'example:two' });
+        sub1.addItem({ command: 'example:three' });
+        sub1.addItem({ command: 'example:four' });
+
+        let sub2 = new Menu({ commands: this.commands });
+        sub2.title.label = 'More...';
+        sub2.title.mnemonic = 0;
+        sub2.addItem({ command: 'example:one' });
+        sub2.addItem({ command: 'example:two' });
+        sub2.addItem({ command: 'example:three' });
+        sub2.addItem({ command: 'example:four' });
+        sub2.addItem({ type: 'submenu', submenu: sub1 });
+
+        let root = new Menu({ commands: this.commands });
+        root.addItem({ type: 'submenu', submenu: sub2 });
+
+        return root;
+    }
+}
 
 class SideBar extends BoxPanel {
-
     dock: DockPanel;
     bar: BoxPanel;
 
@@ -60,12 +141,9 @@ class SideBar extends BoxPanel {
         let icon = new IconWidget("fa fa-cog fa-2x");
         this.bar.addWidget(icon);
     }
-
 }
 
-
 class IconWidget extends Widget {
-
     static createNode(name: string): HTMLElement {
         let node = document.createElement('div');
         node.className = name;
@@ -76,12 +154,9 @@ class IconWidget extends Widget {
         super({ node: IconWidget.createNode(name) });
         this.title.label = name;
     }
-
 }
 
-
 class ContentWidget extends Widget {
-
     static createNode(): HTMLElement {
         let node = document.createElement('div');
         let content = document.createElement('div');
@@ -114,86 +189,4 @@ class ContentWidget extends Widget {
 }
 
 
-function main(): void {
 
-    let bar = setupMenuBar();
-
-    let r1 = new ContentWidget('Red');
-    let b1 = new ContentWidget('Blue');
-    let g1 = new ContentWidget('Green');
-    let y1 = new ContentWidget('Yellow');
-
-
-    let mainArea = new DockPanel();
-    mainArea.addWidget(r1);
-
-    let leftArea = new SideBar();
-    leftArea.addWidget(b1);
-    leftArea.addWidget(g1);
-
-    SplitPanel.setStretch(leftArea, 1);
-    SplitPanel.setStretch(mainArea, 5);
-    // SplitPanel.setStretch(rightArea, 1);
-
-    let main = new SplitPanel({ spacing: 0 });
-    main.id = 'main';
-    main.addWidget(leftArea);
-    main.addWidget(mainArea);
-    // main.addWidget(rightArea);
-
-    window.onresize = () => { main.update(); };
-
-    Widget.attach(bar, document.body);
-    Widget.attach(main, document.body);
-}
-
-
-window.onload = main;
-
-
-function createMenu(): Menu {
-    let sub1 = new Menu({ commands });
-    sub1.title.label = 'More...';
-    sub1.title.mnemonic = 0;
-    sub1.addItem({ command: 'example:one' });
-    sub1.addItem({ command: 'example:two' });
-    sub1.addItem({ command: 'example:three' });
-    sub1.addItem({ command: 'example:four' });
-
-    let sub2 = new Menu({ commands });
-    sub2.title.label = 'More...';
-    sub2.title.mnemonic = 0;
-    sub2.addItem({ command: 'example:one' });
-    sub2.addItem({ command: 'example:two' });
-    sub2.addItem({ command: 'example:three' });
-    sub2.addItem({ command: 'example:four' });
-    sub2.addItem({ type: 'submenu', submenu: sub1 });
-
-    let root = new Menu({ commands });
-    root.addItem({ type: 'submenu', submenu: sub2 });
-
-    return root;
-}
-
-function setupMenuBar() {
-
-    let menu1 = createMenu();
-    menu1.title.label = 'File';
-    menu1.title.mnemonic = 0;
-
-    let menu2 = createMenu();
-    menu2.title.label = 'Edit';
-    menu2.title.mnemonic = 0;
-
-    let menu3 = createMenu();
-    menu3.title.label = 'View';
-    menu3.title.mnemonic = 0;
-
-    let bar = new MenuBar();
-    bar.addMenu(menu1);
-    bar.addMenu(menu2);
-    bar.addMenu(menu3);
-    bar.id = 'menuBar';
-
-    return bar;
-}
