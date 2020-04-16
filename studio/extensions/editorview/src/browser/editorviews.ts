@@ -9,7 +9,7 @@ export const EditorTypes = [
     {
         name: "object",
         label: "Inspector",
-        iconClass: "fa fa-comments",
+        iconClass: "fa fa-clipboard-list",
         area: "right"
     }
 ]

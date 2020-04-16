@@ -74,7 +74,9 @@ export function ComponentPanel(initial) {
                     <molecule.Expander class={expanderMargin} expanded={expanded} onclick={toggle}>
                         <atom.Checkbox class="w-7 mr-2" />
                         <div onclick={toggle} title={label} class="label flex-grow h-6 truncate">{label}</div>
-                        <atom.Icon class="mr-2 w-3" fa="fas fa-ellipsis-v" />
+                        <molecule.DropdownMenu class="mr-2" items={vnode.attrs.menu}>
+                            <atom.Icon class="mr-2 w-3" fa="fas fa-ellipsis-v" />
+                        </molecule.DropdownMenu>
                     </molecule.Expander>
                     {expanded && vnode.children.map((el) => <div class="my-1 mx-4">{el}</div>)}
                 </div>

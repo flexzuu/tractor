@@ -111,7 +111,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 				logging.Info(s.Logger, "ts file changed, compiling...")
 				for _, ext := range []string{"tractor", "editorview"} {
 					if strings.Contains(event.Path, "/studio/extensions/"+ext) {
-						go func() {
+						go func(ext string) {
 							// theia extension
 							cmd := exec.Command("yarn", "build")
 							cmd.Dir = "studio/extensions/" + ext
@@ -119,7 +119,7 @@ func (s *Service) handleLoop(ctx context.Context) {
 							cmd.Stderr = s.output
 							cmd.Run()
 							logging.Info(s.Logger, "finished "+ext)
-						}()
+						}(ext)
 					}
 				}
 

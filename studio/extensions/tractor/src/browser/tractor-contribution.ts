@@ -57,7 +57,11 @@ export namespace TractorContextMenu {
 
     export const NEW = [...TRACTOR_CONTEXT_MENU, '0_new'];
 
+    export const VIEW = [...TRACTOR_CONTEXT_MENU, '4_view'];
+
     export const WORKSPACE = [...TRACTOR_CONTEXT_MENU, '2_workspace'];
+
+    export const VIEWS = [...VIEW, 'views'];
 
     export const COMPONENTS = [...WORKSPACE, 'related_com'];
 
@@ -79,7 +83,7 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
 
     @inject(TractorService)
     protected readonly tractor: TractorService;
-    
+
     @inject(MessageService)
     protected readonly messages: MessageService;
 
@@ -111,11 +115,6 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
 
     onStart(app: FrontendApplication): void {
         this.tractor.connectAgent();
-        this.widgets.onDidCreateWidget((e) => {
-            if (e.widget.constructor.name === "WebviewWidget") {
-                e.widget.title.iconClass = "fa fas fa-clipboard-list";
-            }
-        });
     }
 
     async initializeLayout(app: FrontendApplication): Promise<void> {
@@ -162,7 +161,7 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
             execute: () => {
                 let node = (this.shell.currentWidget as TractorTreeWidget).model.selectedNodes[0];
                 if (node) {
-                    this.quickpick.show(this.tractor.components.map((el)=>el.name)).then((selection) => {
+                    this.quickpick.show(this.tractor.components.map((el) => el.name)).then((selection) => {
                         this.tractor.addComponent(selection, node.id);
                     })
                 }
@@ -172,7 +171,7 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
             execute: () => {
                 let node = (this.shell.currentWidget as TractorTreeWidget).model.selectedNodes[0];
                 if (node) {
-                    this.quickpick.show(this.tractor.prefabs.map((el)=>{ return {"label": el.name, "value": el.id}})).then((selection) => {
+                    this.quickpick.show(this.tractor.prefabs.map((el) => { return { "label": el.name, "value": el.id } })).then((selection) => {
                         this.tractor.loadPrefab(selection, node.id);
                     })
                 }
@@ -244,7 +243,7 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
         // menus.registerMenuAction(TractorContextMenu.NAVIGATION, {
         //     commandId: TractorCommands.TOGGLE.id
         // });
-        
+
         menus.registerSubmenu(TractorContextMenu.NEW, 'New');
         menus.registerMenuAction(TractorContextMenu.NEW, {
             commandId: TractorCommands.ADD_NODE.id
@@ -252,7 +251,12 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
         menus.registerMenuAction(TractorContextMenu.NEW, {
             commandId: TractorCommands.ADD_PREFAB.id
         });
-        
+
+        menus.registerSubmenu(TractorContextMenu.VIEWS, 'View');
+        menus.registerMenuAction(TractorContextMenu.VIEWS, {
+            commandId: "editor:object"
+        });
+
         menus.registerMenuAction(TractorContextMenu.WORKSPACE, {
             commandId: TractorCommands.ADD_COMPONENT.id
         });
@@ -260,11 +264,11 @@ export class TractorContribution extends AbstractViewContribution<TractorTreeWid
         menus.registerMenuAction(TractorContextMenu.MODIFICATION, {
             commandId: TractorCommands.DELETE_NODE.id
         });
-        
+
         menus.registerMenuAction(TractorContextMenu.MODIFICATION, {
             commandId: TractorCommands.RENAME_NODE.id
         });
-        
+
     }
 
     /**
