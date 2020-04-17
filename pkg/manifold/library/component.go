@@ -63,9 +63,14 @@ func (c *component) GetField(path string) (interface{}, reflect.Type, error) {
 }
 
 func (c *component) SetField(path string, value interface{}) error {
-	old, _, _ := c.GetField(path)
+	old, t, _ := c.GetField(path)
 	if old == value {
 		return nil
+	}
+	// when you have a custom string type for enums
+	if t.Kind() == reflect.String && t.Name() != "string" {
+		rv := reflect.ValueOf(value)
+		value = rv.Convert(t).Interface()
 	}
 	jsonpointer.SetReflect(c.value, path, value)
 	notify.Send(c.object, manifold.ObjectChange{
