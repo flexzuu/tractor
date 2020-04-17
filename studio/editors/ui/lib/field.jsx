@@ -78,7 +78,8 @@ export function ComponentPanel(initial) {
                             <atom.Icon class="mr-2 w-3" fa="fas fa-ellipsis-v" />
                         </molecule.DropdownMenu>
                     </molecule.Expander>
-                    {expanded && vnode.children.map((el) => <div class="my-1 mx-4">{el}</div>)}
+                    {/* {expanded && vnode.children.map((el) => <div class="my-1 mx-4">{el}</div>)} */}
+                    {expanded && vnode.children}
                 </div>
             );
         }
@@ -230,14 +231,21 @@ export function Input(initial) {
                 switch (e.target.type) {
                     case "checkbox":
                         send("setValue", { "Path": field.path, "Value": e.target.checked });
+                        break;
                     case "number":
                         send("setValue", { "Path": field.path, "IntValue": e.target.valueAsNumber });
+                        break;
                     default:
                         send("setValue", { "Path": field.path, "Value": e.target.value });
                 }
             }
             switch (field.type) {
                 case "string":
+                    if (field.enum) {
+                        return <form.SelectInput onchange={onchange} value={field.value}>
+                            {field.enum.map((opt) => <option>{opt}</option>)}
+                        </form.SelectInput>;
+                    }
                     return <form.TextInput onchange={onchange} value={field.value} />
                 case "boolean":
                     return <form.CheckboxInput onchange={onchange} checked={field.value} />
@@ -264,7 +272,7 @@ export function Input(initial) {
 export function ComponentField(initial) {
     return {
         view: function (vnode) {
-            let field = vnode.attrs.field;
+            let field = vnode.attrs.field || {};
             switch (field.type) {
                 case "struct":
                 case "map":

@@ -5,16 +5,16 @@ export function Button(initial) {
         backgroundColor: "#404040"
     }
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             function press(e) {
                 state = "down";
             }
             function release(e) {
                 state = "up";
             }
-            return <div class={"Button rounded "+state+" "+vnode.attrs.class} style={{border: "2px solid black"}}>
+            return <div class={"Button rounded " + state + " " + vnode.attrs.class} style={{ border: "2px solid black" }}>
                 <button onclick={vnode.attrs.onclick} onmousedown={press} onmouseup={release} blur={release} onmouseout={release} class="w-full h-8 rounded px-2" style={style}>
-                    {vnode.attrs.label||"Button"}
+                    {vnode.attrs.label || "Button"}
                 </button>
             </div>;
         }
@@ -23,7 +23,7 @@ export function Button(initial) {
 
 export function Label(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             return m("span", vnode.attrs, vnode.children);
         }
     }
@@ -31,7 +31,7 @@ export function Label(initial) {
 
 export function Grip(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             let attrs = vnode.attrs;
             let style = {
                 backgroundColor: "transparent",
@@ -45,7 +45,7 @@ export function Grip(initial) {
                 marginTop: "0.125rem",
                 marginRight: "0.25rem"
             }
-            attrs.style = Object.assign(style, attrs.style||{});
+            attrs.style = Object.assign(style, attrs.style || {});
             return m("div", attrs, vnode.children);
         }
     }
@@ -54,7 +54,7 @@ export function Grip(initial) {
 
 export function Icon(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             return <div class={vnode.attrs.class} onclick={vnode.attrs.onclick}><i class={vnode.attrs.fa}></i></div>;
         }
     }
@@ -62,7 +62,7 @@ export function Icon(initial) {
 
 export function Grippable(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             return <div class="Grippable flex"><Grip /><div class="flex-grow">{vnode.children}</div></div>;
         }
     }
@@ -70,7 +70,7 @@ export function Grippable(initial) {
 
 export function Removable(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             return <div class="Removable">
                 <Icon class="float-right mx-2" fa="fas fa-times-circle"></Icon>
                 <div class="mr-8">{vnode.children}</div>
@@ -81,7 +81,7 @@ export function Removable(initial) {
 
 export function Indicator(initial) {
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             let active = vnode.attrs.active;
             let color = vnode.attrs.color || "#ffff00";
             let style = {
@@ -139,7 +139,7 @@ export function Knob(initial) {
         }
     };
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             function onmousedown(e) {
                 let lastX = e.pageX;
                 let lastY = e.pageY;
@@ -171,14 +171,14 @@ export function Knob(initial) {
             }
             let indicator = Object.assign({}, style.indicator);
             indicator["backgroundColor"] = color;
-            let rot = (value * 300 / (max-min)) + 30;
+            let rot = (value * 300 / (max - min)) + 30;
             indicator["transform"] = `rotate(${rot}deg)`;
             return (
                 <div style={style.knob} onmousedown={onmousedown}>
                     <div style={indicator}></div>
-                    <input type="range" class="hidden" min={min} max={max} value={value} step={step} />
+                    <input type="range" onchange={vnode.attrs.onchange} class="hidden" min={min} max={max} value={value} step={step} />
                 </div>
-            );  
+            );
         }
     }
 }
@@ -190,15 +190,15 @@ export function Slider(initial) {
     let step = initial.attrs.step || 1;
     return {
         // see also range.css
-        view: function(vnode) {
-            return <input type="range" min={min} max={max} value={value} step={step} />;
+        view: function (vnode) {
+            return <input type="range" onchange={vnode.attrs.onchange} min={min} max={max} value={value} step={step} />;
         }
     }
 }
 
 export function Checkbox(initial) {
     let checked = initial.attrs.checked || false;
-    let onclick = initial.attrs.onclick || function(e) {  
+    let onclick = initial.attrs.onclick || function (e) {
         if (checked) {
             checked = false;
         } else {
@@ -206,9 +206,9 @@ export function Checkbox(initial) {
         }
     };
     return {
-        view: function(vnode) {
+        view: function (vnode) {
             let attrs = {
-                type: "checkbox", 
+                type: "checkbox",
                 style: { // see also form.css
                     "-webkit-appearance": "none",
                     appearance: "none",
@@ -217,13 +217,14 @@ export function Checkbox(initial) {
                     height: "1rem",
                     marginTop: "0.25rem",
                 },
-                onclick: onclick
+                onclick: onclick,
+                onchange: vnode.attrs.onchange
             };
             if (checked) {
                 attrs["checked"] = "checked";
             }
             return (
-                <div class={"inline-flex "+vnode.attrs.class}>
+                <div class={"inline-flex " + vnode.attrs.class}>
                     {m("input", attrs)}<span></span>
                     {vnode.attrs.label && <div class="ml-2">{vnode.attrs.label}</div>}
                 </div>
