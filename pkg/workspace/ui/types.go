@@ -1,12 +1,24 @@
 package ui
 
+import (
+	"reflect"
+
+	"github.com/manifold/tractor/pkg/manifold"
+)
+
 type Field struct {
-	Type   string      `msgpack:"type"`
-	Name   string      `msgpack:"name"`
-	Path   string      `msgpack:"path"`
-	Value  interface{} `msgpack:"value"`
-	Enum   []string    `msgpack:"enum"`
-	Fields []Field     `msgpack:"fields"`
+	Type    string      `msgpack:"type"`
+	SubType *Field      `msgpack:"subtype"`
+	Name    string      `msgpack:"name"`
+	Path    string      `msgpack:"path"`
+	Value   interface{} `msgpack:"value"`
+	Enum    []string    `msgpack:"enum"`
+	Min     int         `msgpack:"min"`
+	Max     uint        `msgpack:"max"`
+	Fields  []Field     `msgpack:"fields"`
+
+	rv  reflect.Value
+	obj manifold.Object
 }
 
 type Button struct {

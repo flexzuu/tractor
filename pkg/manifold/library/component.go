@@ -1,11 +1,13 @@
 package library
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/manifold/tractor/pkg/manifold"
 	"github.com/manifold/tractor/pkg/misc/jsonpointer"
@@ -261,11 +263,15 @@ func (c *component) Snapshot() manifold.ComponentSnapshot {
 	return com
 }
 
-func extractRefs(obj manifold.Object, basePath string, v interface{}) (out map[string]interface{}, refs []manifold.SnapshotRef) {
+func extractRefs(obj manifold.Object, basePath string, v interface{}) (out interface{}, refs []manifold.SnapshotRef) {
 	if obj.Root() == nil {
 		return
 	}
-	out = make(map[string]interface{})
+	if _, ok := v.(json.Marshaler); ok {
+		out = v
+		return
+	}
+	sub := make(map[string]interface{})
 	rv := reflected.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return
@@ -277,10 +283,10 @@ func extractRefs(obj manifold.Object, basePath string, v interface{}) (out map[s
 		var subrefs []manifold.SnapshotRef
 		switch ft.Kind() {
 		case reflect.Slice:
-			out[field], subrefs = extractRefsSlice(obj, fieldPath, rv.Get(field).Interface())
+			sub[field], subrefs = extractRefsSlice(obj, fieldPath, rv.Get(field).Interface())
 			refs = append(refs, subrefs...)
 		case reflect.Struct, reflect.Map:
-			out[field], subrefs = extractRefs(obj, fieldPath, rv.Get(field).Interface())
+			sub[field], subrefs = extractRefs(obj, fieldPath, rv.Get(field).Interface())
 			refs = append(refs, subrefs...)
 		case reflect.Ptr, reflect.Interface:
 			if rv.Get(field).IsNil() {
@@ -293,12 +299,13 @@ func extractRefs(obj manifold.Object, basePath string, v interface{}) (out map[s
 					Path:     fieldPath,
 					TargetID: target.ID(),
 				})
-				out[field] = nil
+				sub[field] = nil
 			}
 		default:
-			out[field] = rv.Get(field).Interface()
+			sub[field] = rv.Get(field).Interface()
 		}
 	}
+	out = sub
 	return
 }
 
@@ -359,7 +366,15 @@ func typedComponentValue(value interface{}, name, id string) interface{} {
 	if typedValue == nil {
 		panic("unable to find registered component: " + name)
 	}
-	if err := mapstructure.Decode(value, typedValue); err == nil {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata:   nil,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(mapstructure.StringToTimeHookFunc(time.RFC3339)),
+		Result:     typedValue,
+	})
+	if err != nil {
+		panic(err)
+	}
+	if err := decoder.Decode(value); err == nil {
 		return typedValue
 	} else {
 		panic(err)

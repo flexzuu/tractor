@@ -1,5 +1,7 @@
 package time
 
+import "time"
+
 type UnitType string
 
 func (t UnitType) Enum() []string {
@@ -29,6 +31,11 @@ const (
 type CronManager struct {
 	Hello      string
 	PeriodUnit UnitType
+	Time       time.Time `field:"time"`
+	Date       time.Time `field:"date"`
+	Names      []string
+	Numbers    []int
+	Times      []time.Time
 }
 
 // func (c *CronManager) InspectorUI() view.Element {

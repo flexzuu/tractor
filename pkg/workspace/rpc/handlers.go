@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/containous/yaegi/interp"
 	"github.com/containous/yaegi/stdlib"
@@ -32,6 +33,7 @@ type SetValueParams struct {
 	Value    interface{}
 	IntValue *int
 	RefValue *string
+	Type     string
 }
 
 type RemoveComponentParams struct {
@@ -350,7 +352,7 @@ func (s *Service) SetValue() func(qrpc.Responder, *qrpc.Call) {
 			return
 		}
 		n := s.State.Root.FindChild(params.Path)
-		// fmt.Println(n, params)
+		// fmt.Println(params.Type)
 		localPath := params.Path[len(n.Path())+1:]
 		switch {
 		case params.IntValue != nil:
@@ -375,7 +377,23 @@ func (s *Service) SetValue() func(qrpc.Responder, *qrpc.Call) {
 				}
 			}
 		default:
-			n.SetField(localPath, params.Value)
+			v := params.Value
+			var err error
+			switch params.Type {
+			case "time":
+				v, err = time.Parse("15:04", v.(string))
+				if err != nil {
+					r.Return(err)
+					return
+				}
+			case "date":
+				v, err = time.Parse("2006-01-02", v.(string))
+				if err != nil {
+					r.Return(err)
+					return
+				}
+			}
+			n.SetField(localPath, v)
 		}
 		s.updateView()
 		r.Return(nil)
