@@ -66,7 +66,7 @@ func (c *component) GetField(path string) (interface{}, reflect.Type, error) {
 
 func (c *component) SetField(path string, value interface{}) error {
 	old, t, _ := c.GetField(path)
-	if old == value {
+	if t.Kind() != reflect.Slice && old == value {
 		return nil
 	}
 	// when you have a custom string type for enums

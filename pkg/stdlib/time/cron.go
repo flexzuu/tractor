@@ -35,7 +35,7 @@ type CronManager struct {
 	Date       time.Time `field:"date"`
 	Names      []string
 	Numbers    []int
-	Times      []time.Time
+	Times      []time.Time `fields:"time"`
 }
 
 // func (c *CronManager) InspectorUI() view.Element {

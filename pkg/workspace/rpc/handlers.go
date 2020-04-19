@@ -10,6 +10,7 @@ import (
 	"log"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -177,6 +178,82 @@ func (s *Service) RemoveComponent() func(qrpc.Responder, *qrpc.Call) {
 				fmt.Println(err)
 			}
 		}
+		s.updateView()
+		r.Return(nil)
+	}
+}
+
+func (s *Service) RemoveValue() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var params SetValueParams
+		err := c.Decode(&params)
+		if err != nil {
+			r.Return(err)
+			return
+		}
+		n := s.State.Root.FindChild(params.Path)
+		if n == nil {
+			r.Return(fmt.Errorf("unable to find node: %s", params.Path))
+			return
+		}
+		localPath := params.Path[len(n.Path())+1:]
+		f, _, err := n.GetField(localPath)
+		if err != nil {
+			r.Return(fmt.Errorf("unable to get field: %s", localPath))
+			return
+		}
+		rv := reflect.ValueOf(f)
+		idx := *params.IntValue
+		a := rv.Slice(0, idx)
+		b := rv.Slice(idx+1, rv.Len())
+		rv = reflect.AppendSlice(a, b)
+		n.SetField(localPath, rv.Interface())
+		s.updateView()
+		r.Return(nil)
+	}
+}
+
+func (s *Service) AddValue() func(qrpc.Responder, *qrpc.Call) {
+	return func(r qrpc.Responder, c *qrpc.Call) {
+		var params SetValueParams
+		err := c.Decode(&params)
+		if err != nil {
+			r.Return(err)
+			return
+		}
+		n := s.State.Root.FindChild(params.Path)
+		if n == nil {
+			r.Return(fmt.Errorf("unable to find node: %s", params.Path))
+			return
+		}
+		localPath := params.Path[len(n.Path())+1:]
+		f, t, err := n.GetField(localPath)
+		if err != nil {
+			r.Return(fmt.Errorf("unable to get field: %s", localPath))
+			return
+		}
+		rv := reflect.ValueOf(f)
+		idx := rv.Len()
+		nv := reflect.New(t.Elem())
+		rv = reflect.Append(rv, reflect.Indirect(nv))
+		n.SetField(localPath, rv.Interface())
+		// NOTE: this must also done in setValue
+		v := params.Value
+		switch params.Type {
+		case "time":
+			v, err = time.Parse("15:04", v.(string))
+			if err != nil {
+				r.Return(err)
+				return
+			}
+		case "date":
+			v, err = time.Parse("2006-01-02", v.(string))
+			if err != nil {
+				r.Return(err)
+				return
+			}
+		}
+		n.SetField(filepath.Join(localPath, strconv.Itoa(idx)), v)
 		s.updateView()
 		r.Return(nil)
 	}
@@ -377,6 +454,7 @@ func (s *Service) SetValue() func(qrpc.Responder, *qrpc.Call) {
 				}
 			}
 		default:
+			// NOTE: this must also done in addValue
 			v := params.Value
 			var err error
 			switch params.Type {

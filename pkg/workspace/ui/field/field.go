@@ -25,6 +25,7 @@ type field struct {
 	parent   reflect.Value
 	basepath string
 	obj      manifold.Object
+	tag      reflect.StructTag
 }
 
 var typeBuilders map[string]func(*field)
@@ -74,12 +75,18 @@ func init() {
 		},
 		"map": func(f *field) {
 			f.SubType = collectionSubtypeField(f.rv)
+			if f.tag.Get("fields") != "" {
+				f.SubType.Type = f.tag.Get("fields")
+			}
 			for _, keyname := range reflectutil.Keys(f.rv) {
 				f.Fields = append(f.Fields, subField(f, keyname))
 			}
 		},
 		"array": func(f *field) {
 			f.SubType = collectionSubtypeField(f.rv)
+			if f.tag.Get("fields") != "" {
+				f.SubType.Type = f.tag.Get("fields")
+			}
 			for idx, e := range reflectutil.Values(f.rv) {
 				f.Fields = append(f.Fields, subFieldElem(f, idx, e))
 			}
@@ -187,6 +194,7 @@ func subField(f *field, fieldname string) ui.Field {
 
 	if f.rv.Kind() == reflect.Struct {
 		structfield, _ := f.rv.Type().FieldByName(fieldname)
+		sf.tag = structfield.Tag
 		if structfield.Tag.Get("field") != "" {
 			sf.Type = structfield.Tag.Get("field")
 		}
@@ -211,6 +219,9 @@ func subFieldElem(f *field, idx int, value reflect.Value) ui.Field {
 		v:      value.Interface(),
 	}
 	sf.Name = filepath.Base(sf.Path)
+	if f.tag.Get("fields") != "" {
+		sf.Type = f.tag.Get("fields")
+	}
 	builder, ok := typeBuilders[sf.Type]
 	if !ok {
 		builder = typeBuilders["unknown"]

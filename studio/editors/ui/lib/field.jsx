@@ -90,8 +90,12 @@ export function CollectionItem(initial) {
     return {
         view: function (vnode) {
             let item = vnode.children;
+            let idx = vnode.attrs.idx;
+            function onclick(e) {
+                vnode.attrs.onremove(idx);
+            }
             if (vnode.attrs.removable) {
-                item = <atom.Removable>{item}</atom.Removable>;
+                item = <atom.Removable onclick={onclick}>{item}</atom.Removable>;
             }
             if (vnode.attrs.draggable) {
                 item = <atom.Grippable>{item}</atom.Grippable>;
@@ -139,7 +143,10 @@ export function Collection(initial) {
     let subtype = initial.attrs.subtype;
     let label = initial.attrs.label;
     let expanded = initial.attrs.expanded;
+    let onadd = initial.attrs.onadd;
+    let onremove = initial.attrs.onremove;
     let adding = false;
+    var newValue;
     return {
         oncreate: function (vnode) {
             uniqueIdent(vnode, label);
@@ -167,6 +174,19 @@ export function Collection(initial) {
             if (expanded) {
                 expanderMargin = "mb-2"
             }
+            function changeNewValue(e) {
+                newValue = e.target.checked || e.target.value;
+                if (e.target.type === "number") {
+                    newValue = e.target.valueAsNumber;
+                }
+            }
+            function add(e) {
+                if (onadd) {
+                    onadd(newValue);
+                }
+                newValue = undefined;
+                adding = false;
+            }
             return (
                 <div class="Collection flex flex-col select-none">
                     <molecule.Expander expanded={expanded} class={expanderMargin} onclick={toggleExpander}>
@@ -175,10 +195,10 @@ export function Collection(initial) {
                         <atom.Icon class="mr-2" fa="fas fa-plus-circle" onclick={toggleAdd} />
                     </molecule.Expander>
                     {adding && <CollectionItem class="flex flex-col my-4">
-                        <Input field={subtype} onchange={() => null} />
-                        <atom.Button class="mt-2" label="Add" />
+                        <Input field={subtype} onchange={changeNewValue} value={newValue} />
+                        <atom.Button class="mt-2" label="Add" onclick={add} />
                     </CollectionItem>}
-                    {expanded && vnode.children.map((el) => <CollectionItem removable draggable>{el}</CollectionItem>)}
+                    {expanded && vnode.children.map((el, idx) => <CollectionItem idx={idx} onremove={onremove} removable draggable>{el}</CollectionItem>)}
                 </div>
             );
         }
@@ -282,6 +302,17 @@ export function ComponentField(initial) {
             let field = vnode.attrs.field || {};
             let subfields = field.fields || [];
             let nolabel = vnode.attrs.nolabel;
+
+            let send = console.log;
+            if (window.remoteCall) {
+                send = window.remoteCall;
+            }
+            function collectionAdd(value) {
+                send("addValue", { "Type": field.subtype.type, "Path": field.path, "Value": value });
+            }
+            function collectionRemove(value) {
+                send("removeValue", { "Type": field.type, "Path": field.path, "IntValue": value });
+            }
             switch (field.type) {
                 case "struct":
                     return (
@@ -295,7 +326,7 @@ export function ComponentField(initial) {
                         </Nested>);
                 case "array":
                     return (
-                        <Collection key={vnode.key} label={field.name} subtype={field.subtype}>
+                        <Collection key={vnode.key} label={field.name} subtype={field.subtype} onadd={collectionAdd} onremove={collectionRemove}>
                             {subfields.map((f) => <ComponentField key={f.name} field={f} nolabel={true} />)}
                         </Collection>);
                 default:

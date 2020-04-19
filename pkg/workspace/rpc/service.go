@@ -54,6 +54,8 @@ func (s *Service) InitializeDaemon() (err error) {
 	s.api = qrpc.NewAPI()
 	s.api.HandleFunc("echo", s.Echo())
 	s.api.HandleFunc("console", s.Console())
+	s.api.HandleFunc("addValue", s.AddValue())
+	s.api.HandleFunc("removeValue", s.RemoveValue())
 	s.api.HandleFunc("reload", s.Reload())
 	s.api.HandleFunc("refreshObject", s.RefreshObject())
 	s.api.HandleFunc("repl", s.Repl())

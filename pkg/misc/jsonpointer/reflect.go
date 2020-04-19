@@ -85,7 +85,7 @@ OUTER:
 	if value == nil {
 		val.Set(reflect.Zero(val.Type()))
 	} else {
-		val.Set(reflect.ValueOf(value))
+		val.Set(reflect.ValueOf(value).Convert(val.Type()))
 	}
 	return
 }

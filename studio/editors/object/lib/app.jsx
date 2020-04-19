@@ -32,6 +32,8 @@ export function Inspector(initial) {
                 case "updateNode":
                 case "reloadComponent":
                 case "addDelegate":
+                case "addValue":
+                case "removeValue":
                     //console.log(action, params);
                     return client.call(action, params);
                 case "edit":

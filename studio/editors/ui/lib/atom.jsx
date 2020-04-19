@@ -72,7 +72,7 @@ export function Removable(initial) {
     return {
         view: function (vnode) {
             return <div class="Removable">
-                <Icon class="float-right mx-2" fa="fas fa-times-circle"></Icon>
+                <Icon onclick={vnode.attrs.onclick} class="float-right mx-2" fa="fas fa-times-circle"></Icon>
                 <div class="mr-8">{vnode.children}</div>
             </div>;
         }
