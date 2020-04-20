@@ -3,7 +3,7 @@ import * as atom from '/views/ui/lib/atom.js';
 import * as field from '/views/ui/lib/field.js';
 import * as client from '/views/ui/lib/client.js';
 
-import * as inspector from '/object/lib/app.js';
+import * as inspector from '/views/object/lib/app.js';
 
 export function App(initial) {
     return {
@@ -12,7 +12,6 @@ export function App(initial) {
                 <h1>UI Demo</h1>
                 <div class="flex">
                     <div class="m-2" style={{ "width": "300px" }}>
-                        <inspector.ObjectHeader />
                         <field.ComponentPanel label="New Test">
                             <field.LabeledField label="Every">
                                 <form.TextInput value="1" />
@@ -278,48 +277,3 @@ export function App(initial) {
     }
 }
 
-// not canonical, pls delete
-export function Inspector(initial) {
-    let remote = { components: [] };
-    var node;
-    let path = "/Users/progrium/Projects/tractor/local/workspace";
-    let session = new client.Session(path, (client) => {
-        client.call("subscribe");
-    });
-    session.api.handle("shutdown", {
-        "serveRPC": async (r, c) => {
-            console.log("DEBUG: reload/shutdown received...");
-            session.reconnect();
-            r.return();
-        }
-    });
-    session.api.handle("state", {
-        "serveRPC": async (r, c) => {
-            remote = await c.decode();
-            node = remote.nodes[remote.selectedNode];
-            // if (data.selectedNode && !this.state.lastSelected) {
-            //     this.setState({"lastSelected": data.selectedNode});
-            // }
-            m.redraw();
-            r.return();
-        }
-    });
-
-    return {
-        view: function (vnode) {
-            if (node) {
-                return <section>
-                    <field.ObjectHeader />
-                    {node.components.map((el) =>
-                        <field.ComponentPanel label={el.name}>
-                            {(el.fields || []).map((f, idx) => // this is where you can customize ui
-                                <field.ComponentField key={idx} field={f} />
-                            )}
-                        </field.ComponentPanel>
-                    )}
-                </section>;
-            }
-            return <section>no node selected</section>;
-        }
-    }
-}

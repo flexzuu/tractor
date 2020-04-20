@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/manifold/tractor/pkg/manifold"
-	frontend "github.com/manifold/tractor/pkg/workspace/view"
+	frontend "github.com/manifold/tractor/pkg/workspace/ui"
 )
 
 type Local struct {

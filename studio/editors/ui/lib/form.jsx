@@ -21,6 +21,7 @@ export function PasswordInput(initial) {
             return <InputBox>
                 <input type="password"
                     class="flex-auto"
+                    onchange={vnode.attrs.onchange}
                     style={{ width: "0px", maxWidth: "100%", minWidth: "20%" }}
                     autocomplete="password"
                     value={vnode.attrs.value}
@@ -36,6 +37,7 @@ export function NumberInput(initial) {
             return <InputBox>
                 <input type="number"
                     class="flex-auto"
+                    onchange={vnode.attrs.onchange}
                     value={vnode.attrs.value}
                     style={{ width: "0px", maxWidth: "100%", minWidth: "20%" }}
                 />
@@ -51,7 +53,7 @@ export function SliderInput(initial) {
     let step = initial.attrs.step || 1;
     return {
         view: function (vnode) {
-            return <InputBox transparent><atom.Slider min={min} max={max} value={value} step={step} /></InputBox>;
+            return <InputBox transparent><atom.Slider onchange={vnode.attrs.onchange} min={min} max={max} value={value} step={step} /></InputBox>;
         }
     }
 }
@@ -70,7 +72,8 @@ export function KnobInput(initial) {
                     min={min}
                     max={max}
                     step={step}
-                    sensivity={sensitivity} />
+                    sensivity={sensitivity}
+                    onchange={vnode.attrs.onchange} />
             </InputBox>;
         }
     }
@@ -80,10 +83,6 @@ export function SelectInput(initial) {
     let value = initial.attrs.value;
     return {
         view: function (vnode) {
-            function update(e) {
-                value = e.target.value;
-                console.log(value);
-            }
             let children = vnode.children.slice();
             children.forEach((el) => {
                 let v = el.text;
@@ -98,7 +97,7 @@ export function SelectInput(initial) {
                 }
             })
             return <InputBox>
-                <select class="w-full" onchange={update}>
+                <select class="w-full" onchange={vnode.attrs.onchange}>
                     {children}
                 </select>
             </InputBox>
@@ -122,9 +121,15 @@ export function ColorInput(initial) {
             }
             function updateFromPicker(e) {
                 color = vnode.dom.querySelector("input[type=color]").value;
+                if (vnode.attrs.onchange) {
+                    vnode.attrs.onchange(e);
+                }
             }
             function updateFromTextbox(e) {
                 color = vnode.dom.querySelector("input[type=text]").value;
+                if (vnode.attrs.onchange) {
+                    vnode.attrs.onchange(e);
+                }
             }
             let style = Object.assign({}, wellStyle);
             style["backgroundColor"] = color;
@@ -156,6 +161,7 @@ export function ReferenceInput(initial) {
                     <input
                         class="w-full"
                         type="text"
+                        onchange={vnode.attrs.onchange}
                         value={vnode.attrs.value}
                         placeholder={vnode.attrs.placeholder}
                     />
@@ -172,7 +178,7 @@ export function TimeInput(initial) {
         view: function (vnode) {
             return (
                 <InputBox>
-                    <input type="time" value={vnode.attrs.value} required />
+                    <input type="time" onchange={vnode.attrs.onchange} value={vnode.attrs.value} required />
                     <atom.Icon fa="far fa-clock"></atom.Icon>
                 </InputBox>
             );
@@ -189,6 +195,7 @@ export function DateInput(initial) {
                         class="flex-auto"
                         style={{ width: "0px", maxWidth: "100%", minWidth: "20%", marginRight: "-1rem" }}
                         required
+                        onchange={vnode.attrs.onchange}
                         value={vnode.attrs.value}
                     />
                     <atom.Icon class="pointer-events-none" fa="fas fa-calendar-day"></atom.Icon>
@@ -211,7 +218,8 @@ export function CheckboxInput(initial) {
         view: function (vnode) {
             let attrs = {
                 onclick: onclick,
-                label: vnode.attrs.label
+                label: vnode.attrs.label,
+                onchange: vnode.attrs.onchange
             };
             if (checked) {
                 attrs["checked"] = "checked";

@@ -10,7 +10,7 @@ import (
 	"github.com/manifold/tractor/pkg/misc/logging"
 	"github.com/manifold/tractor/pkg/workspace/editor"
 	"github.com/manifold/tractor/pkg/workspace/state"
-	"github.com/manifold/tractor/pkg/workspace/view"
+	vstate "github.com/manifold/tractor/pkg/workspace/ui/state"
 )
 
 type Service struct {
@@ -20,7 +20,7 @@ type Service struct {
 	State  *state.Service
 	Editor *editor.Service
 
-	viewState *view.State
+	viewState *vstate.State
 	clients   map[qrpc.Caller]string
 	api       qrpc.API
 	l         mux.Listener
@@ -49,11 +49,13 @@ func (s *Service) updateView() {
 func (s *Service) InitializeDaemon() (err error) {
 	s.Inbox = make(chan mux.Session)
 	s.clients = make(map[qrpc.Caller]string)
-	s.viewState = view.New(s.State.Root)
+	s.viewState = vstate.New(s.State.Root)
 
 	s.api = qrpc.NewAPI()
 	s.api.HandleFunc("echo", s.Echo())
 	s.api.HandleFunc("console", s.Console())
+	s.api.HandleFunc("addValue", s.AddValue())
+	s.api.HandleFunc("removeValue", s.RemoveValue())
 	s.api.HandleFunc("reload", s.Reload())
 	s.api.HandleFunc("refreshObject", s.RefreshObject())
 	s.api.HandleFunc("repl", s.Repl())

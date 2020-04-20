@@ -14,8 +14,6 @@ export function App(initial) {
     }
 }
 
-
-
 export function Inspector(initial) {
     let remote = { components: [] };
     var lastSelected;
@@ -34,6 +32,8 @@ export function Inspector(initial) {
                 case "updateNode":
                 case "reloadComponent":
                 case "addDelegate":
+                case "addValue":
+                case "removeValue":
                     //console.log(action, params);
                     return client.call(action, params);
                 case "edit":
@@ -57,6 +57,7 @@ export function Inspector(initial) {
     session.api.handle("state", {
         "serveRPC": async (r, c) => {
             remote = await c.decode();
+            console.log(remote);
             node = remote.nodes[remote.selectedNode || lastSelected];
             if (remote.selectedNode) {
                 lastSelected = remote.selectedNode;
@@ -101,9 +102,8 @@ export function Inspector(initial) {
                     <ObjectHeader node={node} />
                     {node.components.map((c) => {
                         return m(field.ComponentPanel, { label: c.name, menu: buildMenu(c) }, (c.customUI) ?
-                            m(CustomUI, { spec: c.customUI }) :
-                            (c.fields || []).map((f, idx) =>
-                                m(field.ComponentField, { key: idx, field: f }))
+                            m(CustomUI, { spec: c.customUI, fields: c.fields }) :
+                            m(DefaultUI, { fields: c.fields })
                         );
                     })}
                 </section>;
@@ -113,8 +113,17 @@ export function Inspector(initial) {
     }
 }
 
+export function DefaultUI(initial) {
+    return {
+        view: function (vnode) {
+            let fields = vnode.attrs.fields || [];
+            return fields.map((f, idx) =>
+                <div class="my-1 mx-4">{m(field.ComponentField, { key: idx, field: f })}</div>);
+        }
+    }
+}
+
 export function CustomUI(initial) {
-    let spec = initial.attrs.spec;
     let allowedElements = {
         "form.TextInput": form.TextInput,
         "form.PasswordInput": form.PasswordInput,
@@ -136,18 +145,40 @@ export function CustomUI(initial) {
         "atom.Indicator": atom.Indicator,
         "atom.Knob": atom.Knob,
         "atom.Slider": atom.Slider,
-        "atom.Checkbox": atom.Checkbox
+        "atom.Checkbox": atom.Checkbox,
+        "field.ComponentField": field.ComponentField
     };
-    function inflate(el) {
+    function inflate(el, fields) {
         let tag = allowedElements[el.Name];
         if (!tag) {
             tag = el.Name;
         }
-        return m(tag, el.Attrs, (el.Children || []).map((c) => inflate(c)))
+        el.Attrs = el.Attrs || {};
+        if (el.Attrs["data-field"]) {
+            el.Attrs["field"] = findField(fields, el.Attrs["data-field"]);
+            delete el.Attrs["data-field"]
+        }
+        return m(tag, el.Attrs, (el.Children || []).map((c) => inflate(c, fields)))
     }
     return {
         view: function (vnode) {
-            return inflate(spec);
+            return vnode.attrs.spec.map((spec) => <div class="my-1 mx-4">{inflate(spec, vnode.attrs.fields)}</div>);
+        }
+    }
+}
+
+// TODO: this searches for a fields basename, not a relative path
+function findField(fields, name) {
+    for (const f of Object.keys(fields)) {
+        const field = fields[f];
+        if (field.name === name) {
+            return field;
+        }
+        if (field.fields) {
+            let sub = findField(field.fields, name);
+            if (sub) {
+                return sub;
+            }
         }
     }
 }
@@ -169,6 +200,11 @@ export function ObjectHeader(initial) {
             function onchange(e) {
                 send("updateNode", { "ID": node.id, "Name": e.target.value });
             }
+            let menu = [{
+                label: "Reload", onclick: () => {
+                    send("refreshObject", { ID: node.id })
+                }
+            }]
             return <div class="flex w-full pl-3 pr-2 py-2" style={{ "borderBottom": "2px solid #404040" }}>
                 <div class="self-end"><atom.Icon fa="fab fa-dev fa-3x" /></div>
                 <div class="ml-2 flex-grow self-end" style={{ "maxWidth": "80%" }}>
@@ -177,7 +213,11 @@ export function ObjectHeader(initial) {
                     </div>
                     <div class="w-full"><form.TextInput onchange={onchange} title={node.id} value={node.name} /></div>
                 </div>
-                <div class="ml-2 w-4 self-end"><atom.Icon fa="fas fa-cog" /></div>
+                <div class="ml-2 w-4 self-end">
+                    <molecule.DropdownMenu class="mr-2" items={menu}>
+                        <atom.Icon fa="fas fa-cog" />
+                    </molecule.DropdownMenu>
+                </div>
             </div>;
         }
     }
